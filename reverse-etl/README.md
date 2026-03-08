@@ -230,45 +230,7 @@ Open [http://localhost:8000](http://localhost:8000) in your browser.
 
 ---
 
-## Architecture Diagram
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     Microsoft Fabric                        │
-│                                                             │
-│  ┌─────────────┐    ┌──────────────────┐    ┌───────────┐   │
-│  │  Lakehouse  │──▶│  Spark Notebook  │───▶│ Gold Layer│   │
-│  │  (WWI Data) │    │  Customer 360    │    │  Delta    │   │
-│  │             │    │  + Embeddings    │    │  Table    │   │
-│  └─────────────┘    └──────────────────┘    └───────────┘   │
-└───────────────────────────────┬─────────────────────────────┘
-                                │ Reverse ETL
-                                ▼
-                 ┌───────────────────────────────────────┐
-                 │                 Azure                 │
-                 │                                       │
-                 │  ┌─────────────────────────────────┐  │
-                 │  │ Azure Cosmos DB for NoSQL       │  │
-                 │  │ (Enriched Customer Profiles)    │  │
-                 │  └─────────────────────────────────┘  │
-                 │                                       │
-                 │  ┌─────────────────────────────────┐  │
-                 │  │ Azure OpenAI                    │  │
-                 │  │ (Embeddings)                    │  │
-                 │  └─────────────────────────────────┘  │
-                 │                                       │
-                 │  ┌─────────────────────────────────┐  │
-                 │  │ Azure Container App             │  │
-                 │  │ (FastAPI - Semantic Search)     │  │
-                 │  └─────────────────────────────────┘  │
-                 └───────────────────┬───────────────────┘
-                                     │
-                                  ┌──▼──┐
-                                  │User │
-                                  └─────┘
-```
-
-## Microsoft Fabric Customer 360 System
+## Data Flow Architecture Diagram
 
 This diagram shows the data flow from Microsoft Fabric through to Azure services and the web application that serves enriched customer profiles.
 
