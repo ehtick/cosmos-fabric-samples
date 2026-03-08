@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
+name: customer360-search
+metadata:
+  template: customer360-search
+services:
+  webapp:
+    host: containerapp
+    project: ./webapp
+    language: py
+    docker:
+      path: ./Dockerfile
+infra:
+  provider: bicep
+  path: ./infra
+hooks:
+  preprovision:
+    shell: pwsh
+    run: ./infra/hooks/preprovision.ps1
+  postprovision:
+    shell: pwsh
+    run: ./infra/hooks/postprovision.ps1
