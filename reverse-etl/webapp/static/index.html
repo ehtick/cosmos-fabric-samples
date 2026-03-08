@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer 360 Semantic Search</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .header-logo {
+            height: 48px;
+            width: auto;
+            filter: drop-shadow(2px 2px 4px rgba(0,0,0,0.2));
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .search-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        #searchQuery {
+            flex: 1;
+            padding: 15px 20px;
+            font-size: 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            transition: border-color 0.3s;
+        }
+
+        #searchQuery:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        #searchButton {
+            padding: 15px 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        #searchButton:hover {
+            transform: translateY(-2px);
+        }
+
+        #searchButton:active {
+            transform: translateY(0);
+        }
+
+        .example-queries {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .example-query {
+            padding: 8px 15px;
+            background: #f5f5f5;
+            border: 1px solid #e0e0e0;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .example-query:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .diag-bar {
+            display: none;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+            font-size: 0.8rem;
+            padding: 10px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            gap: 24px;
+        }
+
+        .diag-bar.show {
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        .diag-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .diag-label {
+            color: #9cdcfe;
+        }
+
+        .diag-value {
+            color: #ce9178;
+        }
+
+        .results-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: none;
+        }
+
+        .results-section.show {
+            display: block;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-size: 1.2rem;
+            color: #667eea;
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        .customer-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+        }
+
+        .customer-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .customer-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+        }
+
+        .customer-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.2);
+            transform: translateY(-5px);
+        }
+
+        .customer-name {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .customer-segment {
+            display: inline-block;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .segment-high {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .segment-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .segment-low {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .customer-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+            font-size: 0.9rem;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .info-label {
+            color: #666;
+            font-size: 0.8rem;
+            margin-bottom: 2px;
+        }
+
+        .info-value {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .similarity-score {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .similarity-bar {
+            height: 8px;
+            background: #e0e0e0;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .similarity-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            transition: width 0.5s;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>
+                <img src="/static/media/cosmos.svg" alt="Azure Cosmos DB" class="header-logo">
+                Customer 360 Semantic Search
+                <img src="/static/media/fabric.svg" alt="Microsoft Fabric" class="header-logo">
+            </h1>
+            <p class="subtitle">Find similar customers using AI-powered semantic search powered by Cosmos DB and Microsoft Fabric</p>
+        </header>
+
+        <div class="search-section">
+            <div class="search-box">
+                <input 
+                    type="text" 
+                    id="searchQuery" 
+                    placeholder="Describe the customer you're looking for..."
+                    autocomplete="off"
+                >
+                <button id="searchButton">Search</button>
+            </div>
+            
+            <div class="example-queries">
+                <strong style="width: 100%; margin-bottom: 5px;">Example queries:</strong>
+                <span class="example-query">High value novelty shop customers</span>
+                <span class="example-query">Customers who haven't purchased recently</span>
+                <span class="example-query">Medium value gift store customers</span>
+                <span class="example-query">Top computer store purchasers</span>
+                <span class="example-query">Customers similar to Tailspin Toys</span>
+            </div>
+        </div>
+
+        <div class="diag-bar" id="diagBar">
+            <div class="diag-item">
+                <span class="diag-label">COSMOS_ENDPOINT:</span>
+                <span class="diag-value" id="diagEndpoint">—</span>
+            </div>
+            <div class="diag-item">
+                <span class="diag-label">Elapsed:</span>
+                <span class="diag-value" id="diagElapsed">—</span>
+            </div>
+        </div>
+
+        <div class="results-section" id="resultsSection">
+            <div id="resultsContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // =================================================================
+        // Configuration - UPDATE THESE VALUES
+        // =================================================================
+        const CONFIG = {
+            // Local Flask backend (change if deploying elsewhere)
+            apiEndpoint: '/api/search',
+            
+            // Note: For production, move embedding generation to backend API
+            // The backend will use Fabric's built-in OpenAI or your own Azure OpenAI
+            // This frontend config is only needed if doing client-side embedding
+            useBackendForEmbeddings: true  // Recommended: true
+        };
+
+        // =================================================================
+        // State Management
+        // =================================================================
+        let currentResults = [];
+
+        // =================================================================
+        // Event Listeners
+        // =================================================================
+        document.getElementById('searchButton').addEventListener('click', performSearch);
+        document.getElementById('searchQuery').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') performSearch();
+        });
+
+        document.querySelectorAll('.example-query').forEach(query => {
+            query.addEventListener('click', () => {
+                document.getElementById('searchQuery').value = query.textContent;
+                performSearch();
+            });
+        });
+
+        // =================================================================
+        // Main Search Function
+        // =================================================================
+        async function performSearch() {
+            const query = document.getElementById('searchQuery').value.trim();
+            
+            if (!query) {
+                alert('Please enter a search query');
+                return;
+            }
+
+            const resultsSection = document.getElementById('resultsSection');
+            const resultsContent = document.getElementById('resultsContent');
+            
+            // Show loading state
+            resultsSection.classList.add('show');
+            resultsContent.innerHTML = '<div class="loading">Searching for similar customers</div>';
+
+            try {
+                // Send query text to backend - it will handle embedding generation
+                // This is the recommended approach as it uses Fabric's built-in OpenAI
+                const data = await searchWithBackend(query);
+                const results = data.results;
+
+                // Update diagnostics bar
+                const diagBar = document.getElementById('diagBar');
+                diagBar.classList.add('show');
+                document.getElementById('diagElapsed').textContent =
+                    data.elapsed_ms != null ? data.elapsed_ms + ' ms' : '—';
+                
+                // Display results
+                displayResults(results, query);
+                
+            } catch (error) {
+                console.error('Search error:', error);
+                resultsContent.innerHTML = `
+                    <div class="error">
+                        <strong>Error:</strong> ${error.message}
+                        <br><br>
+                        <small>Make sure your API endpoint is configured correctly.</small>
+                    </div>
+                `;
+            }
+        }
+
+        // =================================================================
+        // Search with Backend (Recommended - uses Fabric's built-in OpenAI)
+        // =================================================================
+        async function searchWithBackend(queryText) {
+            // Send plain text query to backend
+            // Backend will:
+            // 1. Generate embedding using Fabric's built-in OpenAI
+            // 2. Search Cosmos DB for similar customers
+            // 3. Return results
+            
+            const response = await fetch(CONFIG.apiEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    query: queryText,
+                    topK: 9
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`API error: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            return { results: data.results || [], elapsed_ms: data.elapsed_ms };
+        }
+
+        // =================================================================
+        // DEPRECATED - Old approach with client-side embedding generation
+        // Use searchWithBackend() instead (recommended)
+        // =================================================================
+        /*
+        async function searchCosmosDB(embedding) {
+            const response = await fetch(CONFIG.apiEndpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    embedding: embedding,
+                    topK: 9
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`API error: ${response.statusText}`);
+            }
+
+            return await response.json();
+        }
+        */
+
+        // =================================================================
+        // Display Results
+        // =================================================================
+        function displayResults(results, query) {
+            const resultsContent = document.getElementById('resultsContent');
+            
+            if (results.length === 0) {
+                resultsContent.innerHTML = `
+                    <div class="no-results">
+                        <h2>No results found</h2>
+                        <p>Try a different search query</p>
+                    </div>
+                `;
+                return;
+            }
+
+            currentResults = results;
+
+            // Calculate stats
+            const totalRevenue = results.reduce((sum, c) => sum + c.total_revenue, 0);
+            const avgRevenue = totalRevenue / results.length;
+
+            let html = `
+                <h2 style="margin-bottom: 20px;">Found ${results.length} similar customers</h2>
+                
+                <div class="stats">
+                    <div class="stat-item">
+                        <div class="stat-value">${results.length}</div>
+                        <div class="stat-label">Customers</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">$${totalRevenue.toLocaleString(undefined, {maximumFractionDigits: 0})}</div>
+                        <div class="stat-label">Total Revenue</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">$${avgRevenue.toLocaleString(undefined, {maximumFractionDigits: 0})}</div>
+                        <div class="stat-label">Avg Revenue</div>
+                    </div>
+                </div>
+
+                <div class="customer-grid">
+            `;
+
+            results.forEach(customer => {
+                const segmentClass = customer.customer_segment.toLowerCase().replace(' ', '-');
+                const similarity = (customer.similarity_score * 100).toFixed(1);
+                
+                html += `
+                    <div class="customer-card">
+                        <div class="customer-name">${customer.customer_name}</div>
+                        <span class="customer-segment segment-${segmentClass}">
+                            ${customer.customer_segment}
+                        </span>
+                        
+                        <div class="customer-info">
+                            <div class="info-item">
+                                <span class="info-label">Category</span>
+                                <span class="info-value">${customer.category || 'N/A'}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Total Revenue</span>
+                                <span class="info-value">$${customer.total_revenue.toLocaleString()}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Transactions</span>
+                                <span class="info-value">${customer.total_transactions}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Avg Purchase</span>
+                                <span class="info-value">$${customer.avg_transaction_value.toFixed(2)}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Last Purchase</span>
+                                <span class="info-value">${customer.last_purchase_date || (customer.days_since_last_purchase + ' days ago')}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">First Purchase</span>
+                                <span class="info-value">${customer.first_purchase_date || 'N/A'}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Buying Group</span>
+                                <span class="info-value">${customer.buying_group || 'N/A'}</span>
+                            </div>
+                        </div>
+
+                        <div class="similarity-score">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 0.85rem; color: #666;">Similarity</span>
+                                <span style="font-weight: 600; color: #667eea;">${similarity}%</span>
+                            </div>
+                            <div class="similarity-bar">
+                                <div class="similarity-fill" style="width: ${similarity}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            resultsContent.innerHTML = html;
+        }
+
+        // =================================================================
+        // Demo Data Generator (Replace with actual Cosmos DB data)
+        // =================================================================
+        function generateDemoResults(embedding) {
+            // This generates fake demo data
+            // In production, this would come from Cosmos DB vector search
+            
+            const demoCustomers = [
+                { name: 'Tailspin Toys (Head Office)', category: 'Novelty Shop', buying_group: 'Tailspin Toys', segment: 'High Value', revenue: 45230.50, transactions: 156, avg: 290.07, days: 12 },
+                { name: 'Wingtip Toys', category: 'Novelty Shop', buying_group: 'Wingtip Toys', segment: 'High Value', revenue: 38901.25, transactions: 142, avg: 273.95, days: 8 },
+                { name: 'Adventure Works', category: 'Gift Store', buying_group: 'N/A', segment: 'Medium Value', revenue: 27456.80, transactions: 98, avg: 280.17, days: 23 },
+                { name: 'Contoso Retail', category: 'Supermarket', buying_group: 'Contoso', segment: 'Medium Value', revenue: 19234.60, transactions: 76, avg: 253.09, days: 15 },
+                { name: 'Fabrikam Inc', category: 'Computer Store', buying_group: 'Fabrikam', segment: 'High Value', revenue: 52108.90, transactions: 189, avg: 275.71, days: 5 },
+                { name: 'Northwind Traders', category: 'Gift Store', buying_group: 'N/A', segment: 'Medium Value', revenue: 31567.40, transactions: 112, avg: 281.85, days: 31 },
+                { name: 'Alpine Ski House', category: 'Novelty Shop', buying_group: 'N/A', segment: 'Low Value', revenue: 12890.30, transactions: 45, avg: 286.45, days: 67 },
+                { name: 'Proseware Inc', category: 'Supermarket', buying_group: 'Proseware', segment: 'Medium Value', revenue: 24567.85, transactions: 89, avg: 276.03, days: 19 },
+                { name: 'Litware Corporation', category: 'Gift Store', buying_group: 'Litware', segment: 'High Value', revenue: 41234.70, transactions: 167, avg: 246.89, days: 9 }
+            ];
+
+            // Generate similarity scores (higher for semantically similar)
+            return demoCustomers.map(c => ({
+                customer_id: Math.floor(Math.random() * 10000),
+                customer_name: c.name,
+                category: c.category,
+                buying_group: c.buying_group,
+                postal_code: Math.floor(Math.random() * 90000) + 10000,
+                customer_segment: c.segment,
+                total_revenue: c.revenue,
+                total_transactions: c.transactions,
+                avg_transaction_value: c.avg,
+                days_since_last_purchase: c.days,
+                similarity_score: 0.75 + (Math.random() * 0.25) // 75-100% similarity
+            })).sort((a, b) => b.similarity_score - a.similarity_score);
+        }
+
+        // =================================================================
+        // Initialize
+        // =================================================================
+        // Load config for diagnostics bar
+        fetch('/api/config')
+            .then(r => r.json())
+            .then(cfg => {
+                document.getElementById('diagEndpoint').textContent = cfg.cosmos_endpoint;
+            })
+            .catch(() => {
+                document.getElementById('diagEndpoint').textContent = '(unavailable)';
+            });
+
+        console.log('Customer 360 Semantic Search initialized');
+        console.log('Note: Update CONFIG object with your actual endpoints');
+    </script>
+</body>
+</html>
