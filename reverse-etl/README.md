@@ -19,17 +19,21 @@ End-to-end demo that processes transactional sales data in **Microsoft Fabric**,
 
 The key insight is **Reverse ETL**: analytical data that starts in the warehouse (aggregated, enriched, embedded) is pushed *back* to an operational database so applications can query it in real time.
 
+Here are the results for a sample query using the same processed data comparing the same query from Azure Cosmos DB vs. Spark SQL from the Lakehouse. The Cosmos DB results in a production environment would be **even faster** as this is measured from a Fabric Notebook in a different region which adds latency to the Cosmos response times.
+
+![Performance Characteristics](./webapp/static/media/comparison.png)
+
 ---
 
 ## User Experience
-
-![Semantic Search Web App](./webapp/static/media/webux.png)
 
 The web app delivers a **natural-language search interface** over enriched Customer 360 profiles. Users type plain-English queries and instantly see results ranked by vector similarity powered by Azure Cosmos DB vector search.
 
 Each result card surfaces key customer attributes at a glance: **name, customer value segment, total revenue, average transaction value and order count**. A similarity score shows how closely each profile matches the query. Summary stats at the top of the results provide a quick snapshot of the result set — total customers found, aggregate revenue, and average revenue — so users can assess the cohort without scrolling.
 
 The experience is designed to demonstrate a customer-facing app with very fast response tiems but backed by enterprise data: Fabric handles the heavy analytical processing upstream, and Azure Cosmos DB serves the enriched profiles with low latency directly inside an application.
+
+![Semantic Search Web App](./webapp/static/media/webux.png)
 
 ## About the Dataset — Wide World Importers
 
@@ -99,11 +103,13 @@ The notebook reads Wide World Importers data from a Fabric Lakehouse, builds enr
 Before running the notebook, deploy the Azure Cosmos DB account and related resources using `azd`.
 
 1. From the repo root, sign in and deploy:
+
    ```bash
    az login
    azd auth login
    azd up
    ```
+
 2. After deployment completes, `azd` generates a `.env` file (typically `webapp/.env`) containing the provisioned resource values.
 3. Open the `.env` file and copy the `COSMOS_ENDPOINT` value — you will paste this into the Fabric notebook after importing it.
 

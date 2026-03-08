@@ -18,6 +18,9 @@ param location string
 @description('Object ID of the current signed-in user for Cosmos RBAC')
 param currentUserObjectId string
 
+@description('Tags to apply to all resources')
+param tags object = {}
+
 // ============================================================================
 // Variables
 // ============================================================================
@@ -42,6 +45,7 @@ var cosmosDataContributorRoleId = '00000000-0000-0000-0000-000000000002'
 resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
   name: cosmosAccountName
   location: location
+  tags: tags
   kind: 'GlobalDocumentDB'
   properties: {
     databaseAccountOfferType: 'Standard'
@@ -150,6 +154,7 @@ resource cosmosRoleAssignment 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssi
 resource openAiAccount 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
   name: openAiAccountName
   location: location
+  tags: tags
   kind: 'OpenAI'
   sku: {
     name: 'S0'
@@ -187,6 +192,7 @@ resource openAiDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024
 resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-11-01-preview' = {
   name: containerRegistryName
   location: location
+  tags: tags
   sku: {
     name: 'Basic'
   }
@@ -202,6 +208,7 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-11-01-pr
 resource containerAppEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
   name: containerAppEnvName
   location: location
+  tags: tags
   properties: {}
 }
 
@@ -212,8 +219,11 @@ resource containerAppEnv 'Microsoft.App/managedEnvironments@2024-03-01' = {
 resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
   name: containerAppName
   location: location
-  tags: {
+  tags: union(tags, {
     'azd-service-name': 'webapp'
+  })
+  identity: {
+    type: 'SystemAssigned'
   }
   properties: {
     managedEnvironmentId: containerAppEnv.id
@@ -284,7 +294,7 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
         }
       ]
       scale: {
-        minReplicas: 0
+        minReplicas: 1
         maxReplicas: 3
         rules: [
           {
@@ -298,6 +308,20 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
         ]
       }
     }
+  }
+}
+
+// ============================================================================
+// Cosmos DB SQL Role Assignment — Data Contributor for Container App identity
+// ============================================================================
+
+resource cosmosRoleAssignmentApp 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-05-15' = {
+  parent: cosmosAccount
+  name: guid(containerApp.id, cosmosAccount.id, cosmosDataContributorRoleId)
+  properties: {
+    principalId: containerApp.identity.principalId
+    roleDefinitionId: '${cosmosAccount.id}/sqlRoleDefinitions/${cosmosDataContributorRoleId}'
+    scope: cosmosAccount.id
   }
 }
 

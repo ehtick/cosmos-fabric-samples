@@ -8,13 +8,20 @@ targetScope = 'subscription'
 param appName string = 'customer360'
 
 @description('Azure region for all resources')
-param location string = 'westus'
+param location string
 
 @description('Resource group name')
 param resourceGroupName string = 'rg-${appName}'
 
+@description('Name of the azd environment')
+param environmentName string
+
 @description('Object ID of the current signed-in user (set by pre-provision hook)')
 param currentUserObjectId string
+
+var tags = {
+  'azd-env-name': environmentName
+}
 
 // ============================================================================
 // Resource Group
@@ -23,6 +30,7 @@ param currentUserObjectId string
 resource rg 'Microsoft.Resources/resourceGroups@2024-03-01' = {
   name: resourceGroupName
   location: location
+  tags: tags
 }
 
 // ============================================================================
@@ -36,6 +44,7 @@ module resources './resources.bicep' = {
     appName: appName
     location: location
     currentUserObjectId: currentUserObjectId
+    tags: tags
   }
 }
 
