@@ -56,17 +56,19 @@ This sample utilizes the sample data provided in the Cosmos DB database in Micro
 
 1. Create a new workspace in Microsoft Fabric. Follow the  steps outlined in [Create a workspace](https://learn.microsoft.com/en-us/fabric/fundamentals/create-workspaces).
 
-1. Follow the steps outlined at [Create a Cosmos DB database in Microsoft Fabric](https://learn.microsoft.com/en-us/fabric/database/cosmos-db/quickstart-portal). The steps involve creating a new Cosmos DB database in your Fabric workspace and loading sample data into it.
+1. From your Fabric workspace, select **+ New Item** from the top-right corner. In the **New Item** pane, search for **Cosmos DB** and select the **Cosmos DB database** item.
 
-    > **Note:** Ensure that you load the sample data into your Cosmos DB database as described in the tutorial, we'll be using that data later in the tutorial.
+1. Provide a name for your Cosmos DB database, e.g., `sample-cosmos`, and select **Create**.
 
-1. Take note of the database name and container name you create, as you'll need them later.
+1. In the **Build your database** page select Sample data, and in the dialog that appears, select **Start** to begin importing the sample data into your Cosmos DB database.
+
+1. Take note of the database name as you'll need it later.
 
 ### Step 2: Build and Publish a User Data Function
 
 Next, we'll create a user data function that updates the current price of a product in the Cosmos DB database.
 
-1. In your Fabric workspace, select **+ New Item** from the top-right corner then select **User Data Function** in the Develop data section.
+1. In your Fabric workspace, select **+ New Item** from the top-right corner then select **User data functions** in the Develop data section.
 
     ![New User Data Function](./images/new-user-data-function.png)
 
@@ -142,7 +144,7 @@ Next, we'll create a user data function that updates the current price of a prod
 
     ![Add azure-cosmos Library](./images/add-azure-cosmos-library.png)
 
-1. On the top menu bar, select **Publish** to publish your user data function.
+1. Close the library management pane and on the top menu bar, select **Publish** to publish your user data function.
 
     ![Publish User Data Function](./images/publish-user-data-function.png)
 
@@ -170,7 +172,7 @@ Finally, we'll create a Power BI report that allows users to update product pric
 
 1. In the connection dialog, provide the Cosmos DB Endpoint and for **Data Connectivity mode**, select **DirectQuery**. Select **OK**.
 
-    If prompted for authentication, select **Organizational account** and sign in with your Microsoft Fabric credentials and select **Connect**.
+    >Note: If prompted for authentication, select **Organizational account** and sign in with your Microsoft Fabric credentials and select **Connect**.
 
 1. In the Navigator pane, expand the Cosmos DB database and select the tables in the **SampleData** container: `SampleData` and `SampleData_PriceHistory[]`.
 
@@ -180,17 +182,17 @@ Finally, we'll create a Power BI report that allows users to update product pric
 
 1. In the Power Query Editor, rename **SampleData_priceHistory[]** to **PriceHistory** for easier reference.
 
-1. Select the **SampleData** table and keep the following columns only: `categoryName`, `currentPrice`, `description`, `docType`, `name` and `productId`. Do this by selecting these columns, right-clicking, and choosing **Remove Other Columns**.
+1. Select the **SampleData**, and from the menu ribbon in the **Home** tab select **Choose Columns** and in the dialog that appears, select the following columns: `categoryName`, `currentPrice`, `docType`, `name` and `productId`. Select **OK** to keep only these columns.
+
+    ![Choose Columns](./images/choose-columns.png)
 
 1. Select the **docType** column, in the **SampleData** table, then filter to only include rows where `docType` is equal to `product`.
 
-1. Select the **PriceHistory** table and remove the following columns: `SampleData(categoryName)`, `SampleData(id)`.
+1. Select the **PriceHistory** table and remove the following columns: `SampleData(categoryName)`, `SampleData(id)` and `categoryName` by selecting the columns and from the menu ribbon in the **Home** tab select **Remove Columns**.
 
-1. Rename the columns `SampleData_priceHistory[]_date` and `SampleData_priceHistory[]_price` to `date` and `price` respectively.
+1. Rename the columns `SampleData_priceHistory[]_date` and `SampleData_priceHistory[]_price` to `date` and `price` respectively by right-clicking the column header and selecting **Rename**.
 
-1. Select **Close and apply** to load the data into Power BI.
-
-    ![Power Query Editor](./images/power-query-editor.png)
+1. From the top menu ribbon, select **Close and apply** to load the data into Power BI.
 
 ### Step 4: Create Interactive Report in Power BI
 
@@ -204,9 +206,27 @@ In this section, build visuals with the data that you loaded into your Power BI 
 
     ![New Relationship](./images/new-relationship.png)
 
-1. Close the Manage Relationships dialog and switch back to the **Report** view.
+1. Close the Manage relationships dialog and select the **Sample Data** table in the Data pane.
 
-1. In the **Visualizations** pane, select the **Slicer** visual to add it to the report canvas, and from the **Data** pane, select the `categoryName` field from the `PriceHistory` table.
+    From the top menu ribbon, select **New measure** and create a new measure with the following DAX formula:
+
+    ```DAX
+    currentPriceDisplay =
+    VAR v = SELECTEDVALUE('SampleData'[currentPrice])
+    RETURN
+    IF(
+        HASONEVALUE('SampleData'[categoryName]) &&
+        HASONEVALUE('SampleData'[name]),
+        IF(
+            v >= 100000,
+            "$" & FORMAT(v / 1000, "#,0.##") & "K",
+            "$" & FORMAT(v, "#,0.##")
+        ),
+        BLANK()
+    )
+    ```
+
+1. Switch to **Report** view and the **Visualizations** pane, select the **Slicer** visual to add it to the report canvas, and from the **Data** pane, select the `categoryName` field from the `SampleData` table.
 
     ![Category Slicer](./images/category-slicer.png)
 
@@ -216,7 +236,7 @@ In this section, build visuals with the data that you loaded into your Power BI 
 
 1. Using the same steps, add another slicer visual for the `name` field from the `SampleData` table. This slicer will allow users to select a specific product.
 
-1. Add a **Card** visual to the report canvas and drag the `currentPrice` field from the `SampleData` table to **Value** well and change the Summarization to **Sum**.
+1. Add a **Card** visual to the report canvas and drag the `currentPriceDisplay` measure from the `SampleData` table to **Value** well.
 
     ![Current Price Card](./images/current-price-card.png)
 
@@ -228,13 +248,11 @@ In this section, build visuals with the data that you loaded into your Power BI 
 
     ![Price History Line Chart](./images/price-history-line-chart.png)
 
-1. Add a **Text Slicer** visual to the report canvas.
+1. Add an **Input Slicer** visual to the report canvas.
 
-    ![Text Slicer](./images/text-slicer.png)
+    ![Input Slicer](./images/input-slicer.png)
 
-1. Select the text slicer and use the **Format visual > General > Title** options to give the text slicer the following title: `Enter New Price`.
-
-    ![Text Slicer Title](./images/text-slicer-title.png)
+1. Select the input slicer and use the **Format visual > General > Title** options to give the input slicer the following title: `Enter new price`.
 
 1. On the taskbar, select the Insert menu and add a Blank button to the report. Drag the button under the text slicer.
 
@@ -245,11 +263,11 @@ In this section, build visuals with the data that you loaded into your Power BI 
 1. Expand the **Action** section and provide the following values for your button:
 
     - **Type**: Data function
-    - **Data function**: Select the **fx** button to open the data function selection pane and expand the `update_price_writeback` User data functions and select the `update_product` function. Select **Connect**.
+    - **Data function**: Select the **fx** button to open the data function selection pane and expand the `update_price_writeback` User data functions and select the `update_price` function. Select **Connect**.
 
 1. Still in the **Action** section, map the function parameters to the appropriate fields and controls in your report:
 
-    - **categoryName**: Select the **fx** button  and in the Data function dialog under *What field show we base this on?*, select the `categoryName` field from the `PriceHistory` table.
+    - **categoryName**: Select the **fx** button  and in the Data function dialog under *What field show we base this on?*, select the `categoryName` field from the `SampleData` table.
     - **productId**: Repeat the previous step and select the `productId` field from the `SampleData` table.
     - **newPrice**: Select `Enter New Price` from the dropdown.
 
@@ -272,7 +290,7 @@ In this section, build visuals with the data that you loaded into your Power BI 
 1. Navigate to your Fabric workspace and open the published report.
 
     > **Note:** On opening the report for the first time, you may encounter an error saying, *The data source Extension is missing credentials and cannot be accessed*. Resolve this by following the following steps:
-    > 1. Open the semantic model for your report and navigate to **File** > **Settings**.
+    > 1. Open the semantic model for your report and from the top menu bar, select **Settings**.
     > 1. Expand the **Data source credentials** setting if it isn't already.
     > 1. Select **Edit credentials**.
     > 1. Choose **OAuth2** as your **Authentication method** from the dropdown menu.
@@ -282,7 +300,7 @@ In this section, build visuals with the data that you loaded into your Power BI 
 
 1. Click the Submit button to invoke the user data function and update the product price in Cosmos DB.
 
-1. After the function completes, select the **Refresh** button and notice that the current price and price history visuals update to reflect the new price.
+1. After the function completes, the current price card and price history line chart should update to reflect the new price. If not, select the refresh button in the top menu bar to refresh the visuals.
 
 ## 📚 Additional Resources
 

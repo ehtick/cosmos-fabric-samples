@@ -58,7 +58,7 @@ A product catalog team stores products and customer reviews in Cosmos DB. They n
 1. Right click the `bronze` schema and select **New table shortcut**.
 1. In the New shortcut dialog, select **Microsoft OneLake** as the source, select the auto-mirrored Cosmos DB Database `ProductCatalog`and the `SampleData` container to create a shortcut in the `bronze` schema.
 
-   ![Lakehouse Shortcut Creation](./assets/lakehouse_shortcut.png)
+   ![Lakehouse Shortcut Creation](./images/lakehouse_shortcut.png)
 
 ### Step 3: Deploy User Data Functions
 
@@ -73,7 +73,7 @@ A product catalog team stores products and customer reviews in Cosmos DB. They n
 
 1. From the top menu bar select **Library Management** > **+ Add from PyPI** and in the dropdown text box, search and select the `azure-cosmos` library and in the version dropdown, select the latest version
 
-   ![Add azure-cosmos library](./assets/add_library.png)
+   ![Add azure-cosmos library](./images/add_library.png)
 
 1. From the top menu bar select **Publish** to save and publish the User Data Functions.
 
@@ -103,17 +103,17 @@ A product catalog team stores products and customer reviews in Cosmos DB. They n
 
 1. Pass the `run_id` parameter to the Functions activity to log the pipeline run summary.
 
-   ![Pipeline Parameters](./assets/pipeline_complete.png)
+   ![Pipeline Parameters](./images/pipeline_complete.png)
 
 ### Step 5: Run
 
 1. Select **Run** in the pipeline toolbar and monitor progress in the **Output** tab.
 
-   ![Pipeline Run](./assets/pipeline_run.png)
+   ![Pipeline Run](./images/pipeline_run.png)
 
 1. After the run completes, verify that new documents have been written to the `product-insights` and `category-dashboard` containers in Cosmos DB, and that pipeline metadata documents have been logged to the `PipelineMetadata` container. Select the refresh button from the top menu bar if the containers do not appear immediately.
 
-   ![Cosmos DB Output](./assets/cosmos_output.png)
+   ![Cosmos DB Output](./images/cosmos_output.png)
 
 ## 📚 Additional Resources
 
