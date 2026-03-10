@@ -94,7 +94,7 @@ Next, we'll create a user data function that updates the current price of a prod
 
     @udf.connection(argName="cosmosClient", audienceType="CosmosDB", cosmos_endpoint=COSMOS_URI)
     @udf.function()
-    def update_product(cosmosClient: CosmosClient, categoryName: str, productId: str, newPrice: float) -> list[dict[str, Any]]:
+    def update_price(cosmosClient: CosmosClient, categoryName: str, productId: str, newPrice: float) -> list[dict[str, Any]]:
 
         try:
             # Get the database and container clients
@@ -122,13 +122,13 @@ Next, we'll create a user data function that updates the current price of a prod
             return product
 
         except exceptions.CosmosResourceNotFoundError as e:
-            logging.error(f"Item not found in update_product: {e}")
+            logging.error(f"Item not found in Cosmos DB: {e}")
             raise
         except exceptions.CosmosHttpResponseError as e:
-            logging.error(f"Cosmos error in update_product: {e}")
+            logging.error(f"Cosmos error in update_price: {e}")
             raise  
         except exceptions as e:
-            logging.error(f"Unexpected error in update_product: {e}")
+            logging.error(f"Unexpected error in update_price: {e}")
             raise
     ```
 
@@ -137,6 +137,10 @@ Next, we'll create a user data function that updates the current price of a prod
     ![Cosmos DB Connection Settings](./images/cosmos-db-connection-settings.png)
 
 1. Replace `YOUR_DATABASE_NAME_HERE` with the name of the Cosmos DB database that you created earlier.
+
+1. On the top menu bar select **Library Management** > **+ Add from PyPI** and in the dropdown text box, search and select the `azure-cosmos` library and in the version dropdown, select the latest version.
+
+    ![Add azure-cosmos Library](./images/add-azure-cosmos-library.png)
 
 1. On the top menu bar, select **Publish** to publish your user data function.
 
@@ -184,7 +188,7 @@ Finally, we'll create a Power BI report that allows users to update product pric
 
 1. Rename the columns `SampleData_priceHistory[]_date` and `SampleData_priceHistory[]_price` to `date` and `price` respectively.
 
-1. Close and apply the changes to load the data into Power BI.
+1. Select **Close and apply** to load the data into Power BI.
 
     ![Power Query Editor](./images/power-query-editor.png)
 
