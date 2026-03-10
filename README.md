@@ -38,6 +38,7 @@ New to Cosmos DB in Fabric? Start here:
 | [Fraud Detection](./fraud-detection/) | Real-time credit card fraud detection using vector search, change feed streaming, and anomaly detection with embeddings | Cosmos DB with vector index, Spark environment, JAR libraries | Advanced |
 | [Disaster Recovery](./disaster-recovery/) | Business continuity and disaster recovery procedures using Git integration and OneLake mirroring to restore Cosmos DB artifacts | Git integration, OneLake shortcuts, Spark environment | Advanced |
 | [Management Operations](./management/) | Container management, throughput operations, and robust data loading with retry logic | Empty Cosmos DB artifact | Beginner |
+| [Data Pipelines](./data-pipelines/) | Medallion pipeline (Bronze→Silver→Gold) with reverse ETL writing enriched insights back to Cosmos DB and pipeline metadata logging | Cosmos DB with lakehouse shortcuts, Spark environment, User Data Functions | Intermediate |
 | [Translytical Task Flows](./translytical-taskflows/) | Build end-to-end translytical workflows combining Cosmos DB, User Data Functions, and Power BI for real-time data updates | SampleData container, User Data Functions, Power BI Desktop | Intermediate |
 
 ### 📊 Datasets
