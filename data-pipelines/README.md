@@ -17,7 +17,7 @@ description: Build a medallion pipeline (Bronze→Silver→Gold) in a Fabric Lak
 
 ## Cosmos DB → Lakehouse (Bronze → Silver → Gold) → Cosmos DB*
 
-This sample builds a complete round-trip data pipeline using **Cosmos DB in Microsoft Fabric** and **Fabric Data Pipelines**. It demonstrates two key patterns:
+This sample builds a data pipeline using **Cosmos DB in Microsoft Fabric** and **Fabric Data Pipelines**. It demonstrates two key patterns:
 
 1. **Reverse ETL** — Processed Gold-layer insights written back to Cosmos DB for operational serving
 2. **Pipeline Metastore** — Data quality, dataset profiles, and transform lineage logged to Cosmos DB via User Data Functions
@@ -34,16 +34,6 @@ A product catalog team stores products and customer reviews in Cosmos DB. They n
 - **User Data Functions** for reusable pipeline metadata logging
 - **Fabric Data Pipelines** orchestrating notebooks and functions
 
-## 📋 Prerequisites
-
-- Microsoft Fabric workspace
-- Custom Spark environment with Cosmos DB Spark connector JARs (for the reverse ETL notebook)
-
-   Download from Maven Central (same JARs used in [`spark-scala/spark-scala.ipynb`](../spark-scala/spark-scala.ipynb)):
-
-   1. [azure-cosmos-spark_3-5_2-12-4.41.0.jar](https://repo1.maven.org/maven2/com/azure/cosmos/spark/azure-cosmos-spark_3-5_2-12/4.41.0/azure-cosmos-spark_3-5_2-12-4.41.0.jar)
-   2. [fabric-cosmos-spark-auth_3-1.1.0.jar](https://repo1.maven.org/maven2/com/azure/cosmos/spark/fabric-cosmos-spark-auth_3/1.1.0/fabric-cosmos-spark-auth_3-1.1.0.jar)
-
 ## 🗂️ Files
 
 | File | Description |
@@ -57,31 +47,35 @@ A product catalog team stores products and customer reviews in Cosmos DB. They n
 
 ### Step 1: Load Sample Data
 
-1. In Fabric, create a **Cosmos DB** database (e.g., `ProductCatalog`)
-2. Click **Sample data** to create a `SampleData` container and import the sample data into it.
-3. Create a new container named `PipelineMetadata` in the same database to store pipeline metadata logged by the User Data Functions. The Partition Key for this container should be `/datasetId`.
+1. In your Fabric workspace, create a **Cosmos DB** database (e.g., `ProductCatalog`)
+1. Click **Sample data** to create a `SampleData` container and import the sample data into it.
+1. Create a new container named `pipeline-metadata` in the same database to store pipeline metadata logged by the User Data Functions. The Partition Key for this container should be `/datasetId`.
 
 ### Step 2: Create Lakehouse Shortcut
 
 1. In your Fabric workspace, create a **Lakehouse** (e.g., `ProductCatalog_LH`)
 1. In the newly Lakehouse, create a new schema named `bronze` by right clicking the Lakehouse name in the left pane and selecting **New schema**.
 1. Right click the `bronze` schema and select **New table shortcut**.
-1. In the New shortcut dialog, select **Microsoft OneLake** as the source, select the auto-mirrored Cosmos DB Database and the `SampleData` container to create a shortcut in the `bronze` schema.
+1. In the New shortcut dialog, select **Microsoft OneLake** as the source, select the auto-mirrored Cosmos DB Database `ProductCatalog`and the `SampleData` container to create a shortcut in the `bronze` schema.
+
+   ![Lakehouse Shortcut Creation](./images/lakehouse_shortcut.png)
 
 ### Step 3: Deploy User Data Functions
 
 1. In your Fabric workspace, create a **User data functions** item named `PipelineMetadata`
-2. On the User Data Function editor page, select New function and replace the default code with the contents of `01_metastore_functions.py`.
-3. Replace the values of the following variables with actual values from your Cosmos DB database:
+1. On the User Data Function editor page, select New function and replace the default code with the contents of `01_metastore_functions.py`.
+1. Replace the values of the following variables with actual values from your Cosmos DB database:
 
    ```python
       COSMOS_DB_URI = "{my-cosmos-artifact-uri}"
       DB_NAME = "{my-cosmos-artifact-name}"
    ```
 
-   >Note: You have to update these variables in all the four functions in the file. Do not change the `CONTAINER_NAME` variable as this is referenced by other notebooks.
+1. From the top menu bar select **Library Management** > **+ Add from PyPI** and in the dropdown text box, search and select the `azure-cosmos` library and in the version dropdown, select the latest version
 
-4. From the top menu bar select **Publish** to save and publish the User Data Functions.
+   ![Add azure-cosmos library](./images/add_library.png)
+
+1. From the top menu bar select **Publish** to save and publish the User Data Functions.
 
 ### Step 4: Import Notebooks and Build Pipeline
 
@@ -91,29 +85,35 @@ A product catalog team stores products and customer reviews in Cosmos DB. They n
    - `03_silver_to_gold.ipynb`
    - `04_gold_to_cosmos.ipynb`
 
-2. Open the `04_gold_to_cosmos.ipynb` notebook and update the `COSMOS_ENDPOINT` variable with the URI of your Cosmos DB account.
-3. Update the environment for the `04_gold_to_cosmos.ipynb` notebook to the custom Spark environment you created above (with the Cosmos DB Spark connector JARs).
-4. For each of the three notebooks, open them and attach them to the Lakehouse you created above.
-5. In your Fabric workspace, create a new **Data Pipeline** (e.g., `CosmosDB_ETL_Pipeline`) and add the three notebooks as activities in the following order:
+1. Open the `04_gold_to_cosmos.ipynb` notebook and update the `COSMOS_ENDPOINT` variable with the URI of your Cosmos DB account in the **Step 1 - Configuration** section.
+1. For each of the three notebooks, open them and attach them to the Lakehouse you created above.
+1. In your Fabric workspace, create a new **Data Pipeline** (e.g., `CosmosDB_ETL_Pipeline`) and add the three notebooks as activities in the following order:
 
    1. `02_bronze_to_silver.ipynb`
-   2. `03_silver_to_gold.ipynb`
-   3. `04_gold_to_cosmos.ipynb`
+   1. `03_silver_to_gold.ipynb`
+   1. `04_gold_to_cosmos.ipynb`
 
-6. Add a **Functions** activity at the end of the pipeline to call the `summarize_pipeline_run` function from the `PipelineMetadata` User Data Functions to log a summary of the pipeline run.
-7. Pass the following parameters as base parameters to each notebook activity:
+1. Add a **Functions** activity at the end of the pipeline to call the `summarize_pipeline_run` function from the `PipelineMetadata` User Data Functions to log a summary of the pipeline run.
+1. Pass the following parameters as base parameters to each notebook activity:
 
    - `run_id`: `@pipeline().RunId`
    - `pipeline_name`: `@pipeline().Pipeline`
 
    These parameters are injected by the Data Factory pipeline and can be used for logging and tracking purposes within the notebooks.
 
-8. Pass the `run_id` parameter to the Functions activity to log the pipeline run summary.
+1. Pass the `run_id` parameter to the Functions activity to log the pipeline run summary.
+
+   ![Pipeline Parameters](./images/pipeline_complete.png)
 
 ### Step 5: Run
 
-1. Click **Run** in the pipeline toolbar and monitor progress in the **Output** tab.
-1. After the run completes, verify that new documents have been written to the `product-insights` and `category-dashboard` containers in Cosmos DB, and that pipeline metadata documents have been logged to the `PipelineMetadata` container.
+1. Select **Run** in the pipeline toolbar and monitor progress in the **Output** tab.
+
+   ![Pipeline Run](./images/pipeline_run.png)
+
+1. After the run completes, verify that new documents have been written to the `product-insights` and `category-dashboard` containers in Cosmos DB, and that pipeline metadata documents have been logged to the `PipelineMetadata` container. Select the refresh button from the top menu bar if the containers do not appear immediately.
+
+   ![Cosmos DB Output](./images/cosmos_output.png)
 
 ## 📚 Additional Resources
 

@@ -4,13 +4,17 @@ udf = fn.UserDataFunctions()
 import logging
 from typing import Any
 from datetime import datetime, timezone
-from fabric.functions.cosmosdb import get_cosmos_client
+from azure.cosmos import CosmosClient
 from azure.cosmos import exceptions
 
 
-@udf.generic_connection(argName="cosmosDb", audienceType="CosmosDB")
+COSMOS_DB_URI = "{my-cosmos-artifact-uri}"
+DB_NAME = "{my-cosmos-artifact-name}"
+CONTAINER_NAME = "pipeline-metadata"
+
+@udf.connection(argName="cosmosClient", audienceType="CosmosDB", cosmos_endpoint=COSMOS_DB_URI)
 @udf.function()
-def log_data_quality(cosmosDb: fn.FabricItem, datasetId: str, runId: str,
+def log_data_quality(cosmosClient: CosmosClient, datasetId: str, runId: str,
                      totalInput: int, totalOutput: int, rejected: int,
                      rulesResults: list[dict[str, Any]]) -> dict[str, Any]:
 
@@ -23,7 +27,7 @@ def log_data_quality(cosmosDb: fn.FabricItem, datasetId: str, runId: str,
         with 90-day TTL.
 
     Args:
-    - cosmosDb (fn.FabricItem): The Cosmos DB connection information.
+    - cosmosClient (CosmosClient): The Cosmos DB client instance.
     - datasetId: Name of the dataset (e.g., "silver_products").
     - runId: Pipeline run identifier for correlating metadata across steps.
     - totalInput: Total rows read from source.
@@ -35,13 +39,9 @@ def log_data_quality(cosmosDb: fn.FabricItem, datasetId: str, runId: str,
     - dict[str, Any]: The upserted Cosmos DB document.
     '''
 
-    COSMOS_DB_URI = "{my-cosmos-artifact-uri}"
-    DB_NAME = "{my-cosmos-artifact-name}"
-    CONTAINER_NAME = "pipeline-metadata"
-
     try:
-        cosmosClient = get_cosmos_client(cosmosDb, COSMOS_DB_URI)
-        container = cosmosClient.get_database_client(DB_NAME).get_container_client(CONTAINER_NAME)
+        database =cosmosClient.get_database_client(DB_NAME)
+        container = database.get_container_client(CONTAINER_NAME)
 
         doc = {
             "id": f"dq-{runId}-{datasetId}",
@@ -68,9 +68,9 @@ def log_data_quality(cosmosDb: fn.FabricItem, datasetId: str, runId: str,
         raise
 
 
-@udf.generic_connection(argName="cosmosDb", audienceType="CosmosDB")
+@udf.connection(argName="cosmosClient", audienceType="CosmosDB", cosmos_endpoint=COSMOS_DB_URI)
 @udf.function()
-def log_dataset_profile(cosmosDb: fn.FabricItem, datasetId: str, runId: str,
+def log_dataset_profile(cosmosClient: CosmosClient, datasetId: str, runId: str,
                         rowCount: int, columnProfiles: list[dict[str, Any]],
                         notes: str) -> dict[str, Any]:
 
@@ -82,7 +82,7 @@ def log_dataset_profile(cosmosDb: fn.FabricItem, datasetId: str, runId: str,
         Documents are stored in the pipeline-metadata container with 90-day TTL.
 
     Args:
-    - cosmosDb (fn.FabricItem): The Cosmos DB connection information.
+    - cosmosClient (CosmosClient): The Cosmos DB client instance.
     - datasetId: Name of the dataset (e.g., "dim_products").
     - runId: Pipeline run identifier for correlating metadata across steps.
     - rowCount: Total number of rows in the dataset.
@@ -93,13 +93,9 @@ def log_dataset_profile(cosmosDb: fn.FabricItem, datasetId: str, runId: str,
     - dict[str, Any]: The upserted Cosmos DB document.
     '''
 
-    COSMOS_DB_URI = "{my-cosmos-artifact-uri}"
-    DB_NAME = "{my-cosmos-artifact-name}"
-    CONTAINER_NAME = "pipeline-metadata"
-
     try:
-        cosmosClient = get_cosmos_client(cosmosDb, COSMOS_DB_URI)
-        container = cosmosClient.get_database_client(DB_NAME).get_container_client(CONTAINER_NAME)
+        database = cosmosClient.get_database_client(DB_NAME)
+        container = database.get_container_client(CONTAINER_NAME)
 
         doc = {
             "id": f"prof-{runId}-{datasetId}",
@@ -122,9 +118,9 @@ def log_dataset_profile(cosmosDb: fn.FabricItem, datasetId: str, runId: str,
         raise
 
 
-@udf.generic_connection(argName="cosmosDb", audienceType="CosmosDB")
+@udf.connection(argName="cosmosClient", audienceType="CosmosDB", cosmos_endpoint=COSMOS_DB_URI)
 @udf.function()
-def log_transform_lineage(cosmosDb: fn.FabricItem, datasetId: str, runId: str,
+def log_transform_lineage(cosmosClient: CosmosClient, datasetId: str, runId: str,
                           sourceDatasets: list[str], transforms: list[str],
                           columnsAdded: list[str]) -> dict[str, Any]:
 
@@ -139,7 +135,7 @@ def log_transform_lineage(cosmosDb: fn.FabricItem, datasetId: str, runId: str,
         package, version 4.14.0 or later.
 
     Args:
-    - cosmosDb (fn.FabricItem): The Cosmos DB connection information.
+    - cosmosClient (CosmosClient): The Cosmos DB client instance.
     - datasetId: Name of the output dataset (e.g., "product-insights").
     - runId: Pipeline run identifier for correlating metadata across steps.
     - sourceDatasets: List of input dataset names (e.g., ["silver_products", "silver_reviews"]).
@@ -150,13 +146,9 @@ def log_transform_lineage(cosmosDb: fn.FabricItem, datasetId: str, runId: str,
     - dict[str, Any]: The upserted Cosmos DB document.
     '''
 
-    COSMOS_DB_URI = "{my-cosmos-artifact-uri}"
-    DB_NAME = "{my-cosmos-artifact-name}"
-    CONTAINER_NAME = "pipeline-metadata"
-
     try:
-        cosmosClient = get_cosmos_client(cosmosDb, COSMOS_DB_URI)
-        container = cosmosClient.get_database_client(DB_NAME).get_container_client(CONTAINER_NAME)
+        database = cosmosClient.get_database_client(DB_NAME)
+        container = database.get_container_client(CONTAINER_NAME)
 
         doc = {
             "id": f"lin-{runId}-{datasetId}",
@@ -179,9 +171,9 @@ def log_transform_lineage(cosmosDb: fn.FabricItem, datasetId: str, runId: str,
         raise
 
 
-@udf.generic_connection(argName="cosmosDb", audienceType="CosmosDB")
+@udf.connection(argName="cosmosClient", audienceType="CosmosDB", cosmos_endpoint=COSMOS_DB_URI)
 @udf.function()
-def summarize_pipeline_run(cosmosDb: fn.FabricItem, runId: str) -> dict[str, Any]:
+def summarize_pipeline_run(cosmosClient: CosmosClient, runId: str) -> dict[str, Any]:
 
     '''
     Summary: Generate a pipeline run summary from metastore data.
@@ -199,20 +191,16 @@ def summarize_pipeline_run(cosmosDb: fn.FabricItem, runId: str) -> dict[str, Any
         package, version 4.14.0 or later.
 
     Args:
-    - cosmosDb (fn.FabricItem): The Cosmos DB connection information.
+    - cosmosClient (CosmosClient): The Cosmos DB client instance.
     - runId: Pipeline run identifier (passed via pipeline parameter expression).
 
     Returns:
     - dict[str, Any]: The consolidated RunSummary document written to Cosmos DB.
     '''
 
-    COSMOS_DB_URI = "{my-cosmos-artifact-uri}"
-    DB_NAME = "{my-cosmos-artifact-name}"
-    CONTAINER_NAME = "pipeline-metadata"
-
     try:
-        cosmosClient = get_cosmos_client(cosmosDb, COSMOS_DB_URI)
-        container = cosmosClient.get_database_client(DB_NAME).get_container_client(CONTAINER_NAME)
+        database = cosmosClient.get_database_client(DB_NAME)
+        container = database.get_container_client(CONTAINER_NAME)
 
         # Query all metadata documents for this run across all partitions
         quality_docs = list(container.query_items(
