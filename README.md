@@ -33,10 +33,13 @@ New to Cosmos DB in Fabric? Start here:
 | [Price-Review Analytics with Spark](./price-reviews-spark/) | Price-review correlation analysis using Python Spark SQL with interactive visualizations | Cosmos DB with lakehouse shortcuts | Advanced |
 | [Price-Review Analytics with Power BI](./price-reviews-powerbi/) | Build Power BI dashboards analyzing price-review correlations using Lakehouse SQL views and DAX measures | Cosmos DB with lakehouse shortcuts, Power BI | Advanced |
 | [Spark Connector with Scala](./spark-scala/) | Read, query, analyze, and write data using Spark Connector with Scala | Custom Spark environment, JAR libraries | Intermediate |
+| [Customer 360 Reverse ETL](./reverse-etl/) | End-to-end reverse ETL pipeline: enrich customer profiles in Fabric, write to Azure Cosmos DB with embeddings, and serve a semantic search web app | Azure subscription, Fabric Lakehouse with WWI data, Azure OpenAI | Advanced |
 | [Advanced Vector Search](./vector-search-advanced/) | Enterprise-grade vector search with Azure OpenAI deployment, Key Vault integration, and custom embedding models | Azure subscription owner rights, Workspace Identity | Advanced |
 | [Fraud Detection](./fraud-detection/) | Real-time credit card fraud detection using vector search, change feed streaming, and anomaly detection with embeddings | Cosmos DB with vector index, Spark environment, JAR libraries | Advanced |
 | [Disaster Recovery](./disaster-recovery/) | Business continuity and disaster recovery procedures using Git integration and OneLake mirroring to restore Cosmos DB artifacts | Git integration, OneLake shortcuts, Spark environment | Advanced |
 | [Management Operations](./management/) | Container management, throughput operations, and robust data loading with retry logic | Empty Cosmos DB artifact | Beginner |
+| [Data Pipelines](./data-pipelines/) | Medallion pipeline (Bronze→Silver→Gold) with reverse ETL writing enriched insights back to Cosmos DB and pipeline metadata logging | Cosmos DB with lakehouse shortcuts, Spark environment, User Data Functions | Intermediate |
+| [Translytical Task Flows](./translytical-taskflows/) | Build end-to-end translytical workflows combining Cosmos DB, User Data Functions, and Power BI for real-time data updates | SampleData container, User Data Functions, Power BI Desktop | Intermediate |
 
 ### 📊 Datasets
 
