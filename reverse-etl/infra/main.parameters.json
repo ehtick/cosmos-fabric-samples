@@ -10,6 +10,12 @@
     },
     "currentUserObjectId": {
       "value": "${AZURE_PRINCIPAL_ID}"
+    },
+    "fabricSqlEndpoint": {
+      "value": "${FABRIC_SQL_ENDPOINT}"
+    },
+    "fabricLakehouse": {
+      "value": "${FABRIC_LAKEHOUSE}"
     }
   }
 }
