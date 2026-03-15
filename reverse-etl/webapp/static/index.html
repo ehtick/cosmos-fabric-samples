@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Customer 360 Semantic Search</title>
+    <title>Reverse ETL Semantic Search</title>
     <style>
         * {
             margin: 0;
@@ -334,10 +334,11 @@
         <header>
             <h1>
                 <img src="/static/media/cosmos.svg" alt="Azure Cosmos DB" class="header-logo">
-                Customer 360 Semantic Search
+                Reverse ETL Semantic Search
                 <img src="/static/media/fabric.svg" alt="Microsoft Fabric" class="header-logo">
             </h1>
-            <p class="subtitle">Find similar customers using AI-powered semantic search powered by Cosmos DB and Microsoft Fabric</p>
+            <p class="subtitle">Find similar customers using AI-powered semantic search powered by Azure Cosmos DB and Microsoft Fabric</p>
+            <nav style="margin-top: 12px;"><a href="/benchmark" style="color: rgba(255,255,255,0.85); text-decoration: none; font-weight: 600; padding: 6px 16px; border: 1px solid rgba(255,255,255,0.4); border-radius: 20px; transition: all 0.2s;">Head-to-Head Benchmark &#8594;</a></nav>
         </header>
 
         <div class="search-section">
@@ -354,13 +355,15 @@
             <div class="example-queries">
                 <strong style="width: 100%; margin-bottom: 5px;">Example queries:</strong>
                 <span class="example-query">High value novelty shop customers</span>
-                <span class="example-query">Customers who haven't purchased recently</span>
-                <span class="example-query">Medium value gift store customers</span>
-                <span class="example-query">Top computer store purchasers</span>
-                <span class="example-query">Customers similar to Tailspin Toys</span>
+                <span class="example-query">Wholesale customers who buy in bulk</span>
+                <span class="example-query">Gift store customers with frequent purchases</span>
+                <span class="example-query">Tailspin Toys franchise locations</span>
+                <span class="example-query">Customers with no purchase activity</span>
+                <span class="example-query">Medium value supermarket accounts</span>
             </div>
         </div>
 
+        <!-- Diagnostic bar (commented out for now)
         <div class="diag-bar" id="diagBar">
             <div class="diag-item">
                 <span class="diag-label">COSMOS_ENDPOINT:</span>
@@ -371,6 +374,7 @@
                 <span class="diag-value" id="diagElapsed">—</span>
             </div>
         </div>
+        -->
 
         <div class="results-section" id="resultsSection">
             <div id="resultsContent"></div>
@@ -435,14 +439,16 @@
                 const data = await searchWithBackend(query);
                 const results = data.results;
 
-                // Update diagnostics bar
+                // Update diagnostics bar (if present)
                 const diagBar = document.getElementById('diagBar');
-                diagBar.classList.add('show');
-                document.getElementById('diagElapsed').textContent =
+                if (diagBar) {
+                    diagBar.classList.add('show');
+                    document.getElementById('diagElapsed').textContent =
                     data.elapsed_ms != null ? data.elapsed_ms + ' ms' : '—';
+                }
                 
                 // Display results
-                displayResults(results, query);
+                displayResults(results, query, data.elapsed_ms);
                 
             } catch (error) {
                 console.error('Search error:', error);
@@ -513,7 +519,7 @@
         // =================================================================
         // Display Results
         // =================================================================
-        function displayResults(results, query) {
+        function displayResults(results, query, elapsedMs) {
             const resultsContent = document.getElementById('resultsContent');
             
             if (results.length === 0) {
@@ -529,11 +535,14 @@
             currentResults = results;
 
             // Calculate stats
-            const totalRevenue = results.reduce((sum, c) => sum + c.total_revenue, 0);
+            const totalRevenue = results.reduce((sum, c) => sum + (c.total_revenue || 0), 0);
             const avgRevenue = totalRevenue / results.length;
 
             let html = `
-                <h2 style="margin-bottom: 20px;">Found ${results.length} similar customers</h2>
+                <div style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 20px;">
+                    <h2>Found ${results.length} similar customers</h2>
+                    ${elapsedMs != null ? `<span style="font-size: 0.8rem; color: #999;">${elapsedMs} ms</span>` : ''}
+                </div>
                 
                 <div class="stats">
                     <div class="stat-item">
@@ -554,14 +563,15 @@
             `;
 
             results.forEach(customer => {
-                const segmentClass = customer.customer_segment.toLowerCase().replace(' ', '-');
-                const similarity = (customer.similarity_score * 100).toFixed(1);
+                const segment = customer.customer_segment || 'Unknown';
+                const segmentClass = segment.toLowerCase().replace(' ', '-');
+                const similarity = (customer.similarity_score * 100).toFixed(2);
                 
                 html += `
                     <div class="customer-card">
-                        <div class="customer-name">${customer.customer_name}</div>
+                        <div class="customer-name">${customer.customer_name || 'Unknown'}</div>
                         <span class="customer-segment segment-${segmentClass}">
-                            ${customer.customer_segment}
+                            ${segment}
                         </span>
                         
                         <div class="customer-info">
@@ -571,15 +581,15 @@
                             </div>
                             <div class="info-item">
                                 <span class="info-label">Total Revenue</span>
-                                <span class="info-value">$${customer.total_revenue.toLocaleString()}</span>
+                                <span class="info-value">$${(customer.total_revenue || 0).toLocaleString()}</span>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">Transactions</span>
-                                <span class="info-value">${customer.total_transactions}</span>
+                                <span class="info-value">${customer.total_transactions || 0}</span>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">Avg Purchase</span>
-                                <span class="info-value">$${customer.avg_transaction_value.toFixed(2)}</span>
+                                <span class="info-value">$${(customer.avg_transaction_value || 0).toFixed(2)}</span>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">Last Purchase</span>
@@ -650,17 +660,19 @@
         // =================================================================
         // Initialize
         // =================================================================
-        // Load config for diagnostics bar
+        // Load config for diagnostics bar (if present)
         fetch('/api/config')
             .then(r => r.json())
             .then(cfg => {
-                document.getElementById('diagEndpoint').textContent = cfg.cosmos_endpoint;
+                const el = document.getElementById('diagEndpoint');
+                if (el) el.textContent = cfg.cosmos_endpoint;
             })
             .catch(() => {
-                document.getElementById('diagEndpoint').textContent = '(unavailable)';
+                const el = document.getElementById('diagEndpoint');
+                if (el) el.textContent = '(unavailable)';
             });
 
-        console.log('Customer 360 Semantic Search initialized');
+        console.log('Reverse ETL Semantic Search initialized');
         console.log('Note: Update CONFIG object with your actual endpoints');
     </script>
 </body>

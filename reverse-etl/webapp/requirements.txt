@@ -4,3 +4,4 @@ python-dotenv
 azure-cosmos
 azure-identity
 openai>=1.0.0
+mssql-python

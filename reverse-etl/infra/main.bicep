@@ -19,6 +19,12 @@ param environmentName string
 @description('Object ID of the current signed-in user (set by pre-provision hook)')
 param currentUserObjectId string
 
+@description('Fabric Lakehouse SQL Analytics Endpoint (optional, for benchmark page)')
+param fabricSqlEndpoint string = ''
+
+@description('Fabric Lakehouse name (optional, for benchmark page)')
+param fabricLakehouse string = ''
+
 var tags = {
   'azd-env-name': environmentName
 }
@@ -44,6 +50,8 @@ module resources './resources.bicep' = {
     appName: appName
     location: location
     currentUserObjectId: currentUserObjectId
+    fabricSqlEndpoint: fabricSqlEndpoint
+    fabricLakehouse: fabricLakehouse
     tags: tags
   }
 }

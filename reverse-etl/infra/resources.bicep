@@ -2,7 +2,7 @@
 // resources.bicep — All resources for Customer 360 Semantic Search
 //
 // Creates: Cosmos DB (NoSQL, Entra-only auth, vector search),
-//          Azure OpenAI (ada-002), ACR, Container Apps Env, Container App
+//          Azure OpenAI (text-embedding-3-small), ACR, Container Apps Env, Container App
 // ============================================================================
 
 // ============================================================================
@@ -21,6 +21,12 @@ param currentUserObjectId string
 @description('Tags to apply to all resources')
 param tags object = {}
 
+@description('Fabric Lakehouse SQL Analytics Endpoint (optional, for benchmark page)')
+param fabricSqlEndpoint string = ''
+
+@description('Fabric Lakehouse name (optional, for benchmark page)')
+param fabricLakehouse string = ''
+
 // ============================================================================
 // Variables
 // ============================================================================
@@ -34,7 +40,7 @@ var containerAppName = '${appName}-app-${uniqueSuffix}'
 
 var cosmosDatabase = 'Customer360DB'
 var cosmosContainer = 'EnrichedCustomers'
-var openAiEmbeddingModel = 'text-embedding-ada-002'
+var openAiEmbeddingModel = 'text-embedding-3-small'
 var openAiApiVersion = '2024-06-01'
 var cosmosDataContributorRoleId = '00000000-0000-0000-0000-000000000002'
 
@@ -166,21 +172,21 @@ resource openAiAccount 'Microsoft.CognitiveServices/accounts@2024-10-01' = {
 }
 
 // ============================================================================
-// Azure OpenAI Embedding Model Deployment (ada-002)
+// Azure OpenAI Embedding Model Deployment (text-embedding-3-small)
 // ============================================================================
 
 resource openAiDeployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01' = {
   parent: openAiAccount
-  name: 'embeddings'
+  name: 'text-embedding-3-small'
   sku: {
     name: 'Standard'
-    capacity: 30
+    capacity: 120
   }
   properties: {
     model: {
       format: 'OpenAI'
       name: openAiEmbeddingModel
-      version: '2'
+      version: '1'
     }
   }
 }
@@ -284,11 +290,19 @@ resource containerApp 'Microsoft.App/containerApps@2024-03-01' = {
             }
             {
               name: 'OPENAI_EMBEDDING_MODEL'
-              value: 'embeddings'
+              value: 'text-embedding-3-small'
             }
             {
               name: 'OPENAI_API_VERSION'
               value: openAiApiVersion
+            }
+            {
+              name: 'FABRIC_SQL_ENDPOINT'
+              value: fabricSqlEndpoint
+            }
+            {
+              name: 'FABRIC_LAKEHOUSE'
+              value: fabricLakehouse
             }
           ]
         }
@@ -334,8 +348,10 @@ output cosmosDatabase string = cosmosDatabase
 output cosmosContainer string = cosmosContainer
 output azureOpenAiEndpoint string = openAiAccount.properties.endpoint
 output azureOpenAiKey string = openAiAccount.listKeys().key1
-output openAiEmbeddingModel string = 'embeddings'
+output openAiEmbeddingModel string = 'text-embedding-3-small'
 output openAiApiVersion string = openAiApiVersion
 output containerRegistryLoginServer string = containerRegistry.properties.loginServer
 output serviceWebappImageName string = '${containerRegistry.properties.loginServer}/${appName}:latest'
 output containerAppUrl string = 'https://${containerApp.properties.configuration.ingress.fqdn}'
+output fabricSqlEndpoint string = fabricSqlEndpoint
+output fabricLakehouse string = fabricLakehouse
