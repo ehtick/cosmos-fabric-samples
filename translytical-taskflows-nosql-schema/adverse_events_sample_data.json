@@ -1,0 +1,212 @@
+[
+  {
+    "id": "ae-001",
+    "trialId": "TRIAL-2024-ALPHA",
+    "eventType": "cardiac",
+    "patientId": "PAT-1042",
+    "siteId": "SITE-03",
+    "reportedDate": "2024-11-01",
+    "severity": "serious",
+    "status": "pending_review",
+    "reportedBy": "Dr. Chen",
+    "docType": "adverseEvent",
+    "cardiacDetails": {
+      "symptomOnset": "2024-10-31T22:15:00Z",
+      "symptoms": ["chest pain", "shortness of breath", "diaphoresis"],
+      "ecgPerformed": true,
+      "ecgFindings": "ST-segment elevation in leads II, III, aVF",
+      "troponinLevel": 2.4,
+      "troponinUnit": "ng/mL",
+      "priorCardiacHistory": false,
+      "currentMedications": ["metformin", "lisinopril"]
+    },
+    "reviewLog": []
+  },
+  {
+    "id": "ae-002",
+    "trialId": "TRIAL-2024-ALPHA",
+    "eventType": "neurological",
+    "patientId": "PAT-0887",
+    "siteId": "SITE-01",
+    "reportedDate": "2024-11-03",
+    "severity": "moderate",
+    "status": "pending_review",
+    "reportedBy": "Dr. Okafor",
+    "docType": "adverseEvent",
+    "neurologicalDetails": {
+      "symptomOnset": "2024-11-02T14:30:00Z",
+      "symptoms": ["persistent headache", "visual disturbance", "nausea"],
+      "gcsScore": 14,
+      "mriPerformed": false,
+      "mriScheduled": "2024-11-05",
+      "priorNeurologicalHistory": true,
+      "priorConditions": ["migraine"],
+      "currentMedications": ["sumatriptan"],
+      "neurologicalExam": {
+        "orientation": "intact",
+        "cranialNerves": "intact",
+        "motorFunction": "normal",
+        "reflexes": "normal"
+      }
+    },
+    "reviewLog": []
+  },
+  {
+    "id": "ae-003",
+    "trialId": "TRIAL-2024-ALPHA",
+    "eventType": "allergic",
+    "patientId": "PAT-0334",
+    "siteId": "SITE-02",
+    "reportedDate": "2024-11-05",
+    "severity": "mild",
+    "status": "pending_review",
+    "reportedBy": "Dr. Martinez",
+    "docType": "adverseEvent",
+    "allergicDetails": {
+      "symptomOnset": "2024-11-05T09:45:00Z",
+      "reactionType": "cutaneous",
+      "symptoms": ["urticaria", "pruritis"],
+      "bodyAreaAffected": ["arms", "torso"],
+      "epiPenAdministered": false,
+      "antihistamineAdministered": true,
+      "suspectedAllergen": "study drug excipient",
+      "priorAllergyHistory": false,
+      "skinTestPerformed": false
+    },
+    "reviewLog": []
+  },
+  {
+    "id": "ae-004",
+    "trialId": "TRIAL-2024-ALPHA",
+    "eventType": "lab_anomaly",
+    "patientId": "PAT-0561",
+    "siteId": "SITE-01",
+    "reportedDate": "2024-11-06",
+    "severity": "moderate",
+    "status": "pending_review",
+    "reportedBy": "Dr. Singh",
+    "docType": "adverseEvent",
+    "labAnomalyDetails": {
+      "sampleCollectedDate": "2024-11-06",
+      "labPanel": "hepatic function",
+      "anomalousValues": [
+        { "test": "ALT", "value": 148, "unit": "U/L", "normalRange": "7-56 U/L", "foldAboveULN": 2.6 },
+        { "test": "AST", "value": 112, "unit": "U/L", "normalRange": "10-40 U/L", "foldAboveULN": 2.8 },
+        { "test": "ALP", "value": 180, "unit": "U/L", "normalRange": "44-147 U/L", "foldAboveULN": 1.2 }
+      ],
+      "patientSymptoms": ["mild right upper quadrant discomfort"],
+      "priorHepaticHistory": false,
+      "alcoholUse": "none",
+      "repeatLabScheduled": "2024-11-13",
+      "studyDrugHeld": true
+    },
+    "reviewLog": []
+  },
+  {
+    "id": "ae-005",
+    "trialId": "TRIAL-2024-ALPHA",
+    "eventType": "cardiac",
+    "patientId": "PAT-0219",
+    "siteId": "SITE-04",
+    "reportedDate": "2024-11-07",
+    "severity": "mild",
+    "status": "pending_review",
+    "reportedBy": "Dr. Nguyen",
+    "docType": "adverseEvent",
+    "cardiacDetails": {
+      "symptomOnset": "2024-11-07T07:00:00Z",
+      "symptoms": ["palpitations"],
+      "ecgPerformed": true,
+      "ecgFindings": "occasional PVCs, no sustained arrhythmia",
+      "troponinLevel": 0.02,
+      "troponinUnit": "ng/mL",
+      "priorCardiacHistory": true,
+      "priorConditions": ["mild hypertension"],
+      "currentMedications": ["amlodipine 5mg"]
+    },
+    "reviewLog": []
+  },
+  {
+    "id": "ae-006",
+    "trialId": "TRIAL-2024-ALPHA",
+    "eventType": "neurological",
+    "patientId": "PAT-0773",
+    "siteId": "SITE-03",
+    "reportedDate": "2024-11-08",
+    "severity": "serious",
+    "status": "pending_review",
+    "reportedBy": "Dr. Chen",
+    "docType": "adverseEvent",
+    "neurologicalDetails": {
+      "symptomOnset": "2024-11-08T03:20:00Z",
+      "symptoms": ["sudden onset confusion", "slurred speech", "left arm weakness"],
+      "gcsScore": 12,
+      "mriPerformed": true,
+      "mriFindings": "small acute infarct in right MCA territory",
+      "nihssScore": 7,
+      "priorNeurologicalHistory": false,
+      "currentMedications": ["aspirin 81mg"],
+      "neurologicalExam": {
+        "orientation": "impaired",
+        "cranialNerves": "CN VII asymmetry noted",
+        "motorFunction": "left arm 4/5",
+        "reflexes": "brisk on left"
+      }
+    },
+    "reviewLog": []
+  },
+  {
+    "id": "ae-007",
+    "trialId": "TRIAL-2024-ALPHA",
+    "eventType": "allergic",
+    "patientId": "PAT-0995",
+    "siteId": "SITE-02",
+    "reportedDate": "2024-11-09",
+    "severity": "serious",
+    "status": "pending_review",
+    "reportedBy": "Dr. Martinez",
+    "docType": "adverseEvent",
+    "allergicDetails": {
+      "symptomOnset": "2024-11-09T11:10:00Z",
+      "reactionType": "anaphylactic",
+      "symptoms": ["urticaria", "angioedema", "bronchospasm", "hypotension"],
+      "bodyAreaAffected": ["full body"],
+      "epiPenAdministered": true,
+      "epiPenTime": "2024-11-09T11:14:00Z",
+      "antihistamineAdministered": true,
+      "suspectedAllergen": "study drug active compound",
+      "priorAllergyHistory": true,
+      "priorAllergens": ["shellfish"],
+      "skinTestPerformed": false,
+      "hospitalizedForReaction": true
+    },
+    "reviewLog": []
+  },
+  {
+    "id": "ae-008",
+    "trialId": "TRIAL-2024-ALPHA",
+    "eventType": "lab_anomaly",
+    "patientId": "PAT-0102",
+    "siteId": "SITE-04",
+    "reportedDate": "2024-11-10",
+    "severity": "mild",
+    "status": "pending_review",
+    "reportedBy": "Dr. Nguyen",
+    "docType": "adverseEvent",
+    "labAnomalyDetails": {
+      "sampleCollectedDate": "2024-11-10",
+      "labPanel": "renal function",
+      "anomalousValues": [
+        { "test": "Creatinine", "value": 1.6, "unit": "mg/dL", "normalRange": "0.7-1.3 mg/dL", "foldAboveULN": 1.2 },
+        { "test": "BUN", "value": 28, "unit": "mg/dL", "normalRange": "7-20 mg/dL", "foldAboveULN": 1.4 }
+      ],
+      "patientSymptoms": [],
+      "priorHepaticHistory": false,
+      "priorRenalHistory": false,
+      "hydrationStatus": "adequate",
+      "repeatLabScheduled": "2024-11-17",
+      "studyDrugHeld": false
+    },
+    "reviewLog": []
+  }
+]
