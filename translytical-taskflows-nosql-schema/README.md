@@ -1,4 +1,4 @@
-# Translytical Task Flows — Clinical Trial Adverse Event Triage
+# 🏥 Translytical Task Flows — Clinical Trial Adverse Event Triage
 
 This sample demonstrates a **translytical task flow** using Cosmos DB in Microsoft Fabric as the operational data store, combined with Power BI and User Data Functions (UDFs) to enable real-time triage decisions from an analytics dashboard.
 
@@ -6,7 +6,7 @@ This sample demonstrates a **translytical task flow** using Cosmos DB in Microso
 
 ---
 
-## Scenario
+## 🩺 Scenario
 
 A clinical trial safety officer monitors incoming **adverse event reports** across multiple trial sites. Events arrive with different clinical detail depending on their type — cardiac events include ECG findings and troponin levels, neurological events include GCS scores and MRI results, allergic reactions include allergen identification and epinephrine administration, and lab anomalies include multi-value result sets with normal-range comparisons.
 
@@ -16,7 +16,7 @@ The officer views a **Power BI triage queue**, selects an event, enters a decisi
 
 ---
 
-## Architecture
+## 🏗️ Architecture
 
 ```
 ┌──────────────────────────────────────────────────────────────────┐
@@ -39,7 +39,7 @@ The officer views a **Power BI triage queue**, selects an event, enters a decisi
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-### How the data flows
+### 🔄 How the data flows
 
 Power BI **reads** directly from Cosmos DB in Fabric using the **Azure Cosmos DB connector** in Import mode. Power Query flattens the top-level scalar fields of each document — the common header fields shared by all adverse event types — into a tabular dataset. The rich type-specific nested detail (cardiac findings, lab values, etc.) is not needed by the report and stays in Cosmos DB.
 
@@ -47,11 +47,11 @@ Power BI **writes back** through a UDF. When a reviewer clicks **Submit Triage**
 
 ---
 
-## Why Cosmos DB?
+## 💡 Why Cosmos DB?
 
 This sample demonstrates three Cosmos DB capabilities that have **no clean SQL equivalent**:
 
-### 1. Schema-Agnostic Write-Back
+### 1. 📝 Schema-Agnostic Write-Back
 
 When the safety officer submits a triage decision, the UDF appends a `followUpProtocol` subdocument to the event's `reviewLog`. The structure of that subdocument is **different for every event type**:
 
@@ -150,7 +150,7 @@ In a SQL database, storing these varying structures would require either:
 
 In Cosmos DB, each document stores exactly the fields it needs. Adding a new event type requires **zero database schema changes** — only a new branch in the UDF.
 
-### 2. Atomic Array Append via Partial Document Update
+### 2. ⚡ Atomic Array Append via Partial Document Update
 
 The UDF uses Cosmos DB's [Partial Document Update (patch) API](https://learn.microsoft.com/azure/cosmos-db/partial-document-update) to atomically append to the `reviewLog` array:
 
@@ -164,13 +164,13 @@ container.patch_item(item=eventId, partition_key=trialId, patch_operations=patch
 
 This operation is atomic and does **not require reading the full document first**. SQL has no equivalent — to append to a stored array in SQL you must `SELECT`, deserialize, modify, and `UPDATE` in separate round trips.
 
-### 3. Mixed `docType` in a Single Container
+### 3. 📦 Mixed `docType` in a Single Container
 
 The same container holds documents of different types (`adverseEvent`, `patient`, `trialProtocol`) with no shared schema requirement. Power Query selects only the common header fields that all adverse events share. The rich type-specific clinical detail stays nested in Cosmos DB, ready for write-back, without cluttering the analytics layer.
 
 ---
 
-## Prerequisites
+## 📋 Prerequisites
 
 - Microsoft Fabric workspace with Fabric capacity (F2 or higher)
 - Cosmos DB database created in Fabric
@@ -181,9 +181,9 @@ The same container holds documents of different types (`adverseEvent`, `patient`
 
 ---
 
-## Setup
+## 🛠️ Setup
 
-### Step 1 — Create the Cosmos DB Database in Fabric
+### Step 1 — 🗄️ Create the Cosmos DB Database in Fabric
 
 1. In your Fabric workspace, select **+ New Item** and choose **Azure Cosmos DB**.
 2. Name your database `ClinicalTrialDB` and select **Create**.
@@ -192,14 +192,14 @@ The same container holds documents of different types (`adverseEvent`, `patient`
    - **Partition key:** `/trialId`
 4. From **Settings > Connection**, copy the **Cosmos DB URI** — you will need it for the UDF and for Power BI.
 
-### Step 2 — Load the Sample Data
+### Step 2 — 📤 Load the Sample Data
 
 1. In your Fabric workspace, open the **ClinicalTrialDB** Cosmos DB item.
 2. In the **Data Explorer**, expand the **ClinicalTrialDB** database and select the **ClinicalTrialData** container.
 3. Click **Upload Item** at the top of the Data Explorer pane.
 4. Browse to `adverse_events_sample_data.json` from this repository and upload it.
 
-### Step 3 — Create the Triage Write-Back UDF
+### Step 3 — ⚙️ Create the Triage Write-Back UDF
 
 1. In your Fabric workspace, select **+ New Item > User Data Functions**.
 2. Name it `triage_writeback`.
@@ -209,9 +209,9 @@ The same container holds documents of different types (`adverseEvent`, `patient`
 5. In **Library Management**, add `azure-cosmos` from PyPI.
 6. Select **Publish**.
 
-### Step 4 — Configure Power BI
+### Step 4 — 📊 Configure Power BI
 
-#### Connect to Cosmos DB
+#### 🔌 Connect to Cosmos DB
 
 Power BI connects directly to Cosmos DB in Fabric using the Azure Cosmos DB connector. Both Import and Direct Query modes work with UDFs, but Import is a good fit here because the triage dataset is small and infrequently changing — giving fast interactivity without the overhead of live queries on every visual interaction. The connector reads documents and Power Query flattens the top-level fields into columns, giving Power BI the tabular structure it needs while leaving the nested detail untouched in Cosmos DB.
 
@@ -221,7 +221,7 @@ Power BI connects directly to Cosmos DB in Fabric using the Azure Cosmos DB conn
 4. In the Navigator, expand `ClinicalTrialDB`, expand `ClinicalTrialData`, and check the box next to `ClinicalTrialData`.
 5. Select **Transform Data** to open Power Query before loading.
 
-#### Flatten the Documents in Power Query
+#### 🧹 Flatten the Documents in Power Query
 
 The Cosmos DB v2 connector automatically expands the top-level fields of each document into individual columns. Use Power Query to remove the nested fields that aren't needed by the report:
 
@@ -233,7 +233,7 @@ The Cosmos DB v2 connector automatically expands the top-level fields of each do
 
 > **Why we exclude the nested fields:** Fields like `cardiacDetails`, `neurologicalDetails`, and `reviewLog` have different shapes per document type and cannot be meaningfully flattened into Power BI columns. They don't need to be — the report only needs the common header fields for the triage queue. The full nested detail is preserved in Cosmos DB and is what makes the write-back valuable.
 
-#### Create the ReviewerName Measure
+#### 📐 Create the ReviewerName Measure
 
 The button needs the currently signed-in user's identity to pass as the `reviewerName` parameter. Create a DAX measure to expose this:
 
@@ -247,7 +247,7 @@ The button needs the currently signed-in user's identity to pass as the `reviewe
 
 > **Note:** In Power BI Desktop, `USERPRINCIPALNAME()` returns your local account email. When the report is published to the Power BI service, it returns the UPN of the signed-in user viewing the report.
 
-#### Build the Report
+#### 🎨 Build the Report
 
 The report consists of three visuals:
 
@@ -305,7 +305,7 @@ Create three Card visuals, one for each severity level (`serious`, `moderate`, `
     | `decision` | Conditional value → `SELECTEDVALUE(TriageDecisions[Decision])` |
     | `notes` | Slicer value → Reviewer Notes |
 
-### Step 5 — Save and Publish the Report
+### Step 5 — 🚀 Save and Publish the Report
 
 Save the report and publish it to your Fabric workspace before testing the Submit Triage button:
 
@@ -317,7 +317,7 @@ Save the report and publish it to your Fabric workspace before testing the Submi
 
 ---
 
-## What Happens After You Click Submit
+## ✅ What Happens After You Click Submit
 
 When a reviewer selects an event row and clicks **Submit Triage**:
 
@@ -335,7 +335,7 @@ SELECT * FROM c WHERE c.id = "ae-001"
 
 ---
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 translytical-clinical-triage/
@@ -346,7 +346,7 @@ translytical-clinical-triage/
 
 ---
 
-## Key Cosmos DB APIs Used
+## 🔑 Key Cosmos DB APIs Used
 
 | API | Used For |
 |---|---|
@@ -355,7 +355,7 @@ translytical-clinical-triage/
 
 ---
 
-## Related Samples
+## 🔗 Related Samples
 
 - [Translytical Task Flows — Product Pricing](../translytical-taskflows/README.md)
 - [Cosmos DB in Microsoft Fabric](https://learn.microsoft.com/fabric/database/cosmos-db/overview)

@@ -1,18 +1,18 @@
-# Travel Multi-Agent Analytics Guide
+# ✈️ Travel Multi-Agent Analytics Guide
 
 This guide walks you through generating realistic data in the Travel Multi-Agent application, then using Microsoft Fabric to analyze multi-agent memory patterns, trip planning behavior, and user preferences.
 
-## What You'll Build
+## 🎯 What You'll Build
 
-- **Web Application** — The complete Travel Assistant deployed to Azure Container Apps, featuring an Angular frontend where users chat with specialized AI agents that plan personalized trips. The agents remember user preferences, search for hotels, restaurants, and activities, and build day-by-day itineraries — all powered by Azure Cosmos DB and Azure OpenAI. See the [User Guide](../02_completed/USER_GUIDE.md) for a full walkthrough of the application's features.
-- **Data Generator** — A Python script that simulates 12 diverse users having realistic conversations with the travel assistant, generating memories, trips, and conversation data in Cosmos DB.
-- **Spark Notebook** — A Fabric notebook that reads mirrored Cosmos DB data, flattens nested JSON structures, and writes 10 analytical Delta tables to OneLake.
-- **SQL Queries** — Ready-to-run queries for the Fabric SQL Analytics Endpoint for quick ad-hoc exploration.
-- **Power BI Report** — A 5-page report visualizing memory intelligence, user preferences, trip patterns, destination insights, and memory health.
+- 🌐 **Web Application** — The complete Travel Assistant deployed to Azure Container Apps, featuring an Angular frontend where users chat with specialized AI agents that plan personalized trips. The agents remember user preferences, search for hotels, restaurants, and activities, and build day-by-day itineraries — all powered by Azure Cosmos DB and Azure OpenAI. See the [User Guide](../02_completed/USER_GUIDE.md) for a full walkthrough of the application's features.
+- 🤖 **Data Generator** — A Python script that simulates 12 diverse users having realistic conversations with the travel assistant, generating memories, trips, and conversation data in Cosmos DB.
+- 📓 **Spark Notebook** — A Fabric notebook that reads mirrored Cosmos DB data, flattens nested JSON structures, and writes 10 analytical Delta tables to OneLake.
+- 🔍 **SQL Queries** — Ready-to-run queries for the Fabric SQL Analytics Endpoint for quick ad-hoc exploration.
+- 📊 **Power BI Report** — A 5-page report visualizing memory intelligence, user preferences, trip patterns, destination insights, and memory health.
 
 ![Power BI Memory Intelligence Report](media/report_page1_memory_intelligence.png)
 
-## Prerequisites
+## 📋 Prerequisites
 
 - The Travel Multi-Agent application deployed and running ([see main README](../README.md))
 - Azure Cosmos DB with the application's containers populated
@@ -24,11 +24,11 @@ This guide walks you through generating realistic data in the Travel Multi-Agent
 
 ---
 
-## Step 1: Generate Data
+## 🧪 Step 1: Generate Data
 
 The application ships with only a handful of seed users and trips. The data generator creates realistic conversation data by simulating 12 user personas interacting with the travel assistant.
 
-### 1.1 Set Up the Analytics Virtual Environment
+### 1.1 🐍 Set Up the Analytics Virtual Environment
 
 ```powershell
 cd analytics
@@ -38,7 +38,7 @@ python -m venv .venv
 pip install httpx
 ```
 
-### 1.2 Install Application Requirements
+### 1.2 📦 Install Application Requirements
 
 Before starting the servers, create the application's virtual environment and install its dependencies:
 
@@ -52,7 +52,7 @@ pip install -r requirements.txt
 
 > **Note:** If you already completed this step as part of the main workshop setup, you can skip it.
 
-### 1.3 Start the Application
+### 1.3 🚀 Start the Application
 
 You need two services running before the data generator can work. Open separate terminals for each:
 
@@ -94,7 +94,7 @@ Wait for `✅ Agents initialized successfully!`
 
 > **Note:** The Angular frontend (port 4200) is **not required** for data generation. The data generator talks directly to the API server.
 
-### 1.4 Run a Dry Run
+### 1.4 🧪 Run a Dry Run
 
 Preview what the generator will do without making any API calls:
 
@@ -106,7 +106,7 @@ python data_generator.py --dry-run --personas 2
 
 This shows the user personas, their conversations, and all messages that will be sent.
 
-### 1.5 Generate Data
+### 1.5 ▶️ Generate Data
 
 Start with a small run to verify everything works:
 
@@ -159,7 +159,7 @@ This runs 4 personas concurrently, cutting wall-clock time by ~4x (from 2+ hours
 | `--parallel` | `1` | Run N personas concurrently (3-4 recommended) |
 | `--dry-run` | off | Print plan without calling API |
 
-### 1.6 What Gets Generated
+### 1.6 👥 What Gets Generated
 
 The 12 personas cover diverse traveler archetypes:
 
@@ -180,12 +180,12 @@ The 12 personas cover diverse traveler archetypes:
 
 Each persona has 2-3 conversations that generate:
 
-- **Memories** -- dietary restrictions, budget preferences, accessibility needs, style preferences (declarative, procedural, episodic types)
-- **Trips** -- day-by-day itineraries with hotel, restaurant, and activity recommendations
-- **Memory conflicts** -- e.g., Maya updates from "vegan" to "pescatarian", Alex goes from "pescatarian" to "vegetarian"
-- **Trip status mix** -- after all conversations, the generator automatically updates some trips to "confirmed" and "completed" status
+- 🧠 **Memories** -- dietary restrictions, budget preferences, accessibility needs, style preferences (declarative, procedural, episodic types)
+- ✈️ **Trips** -- day-by-day itineraries with hotel, restaurant, and activity recommendations
+- ⚡ **Memory conflicts** -- e.g., Maya updates from "vegan" to "pescatarian", Alex goes from "pescatarian" to "vegetarian"
+- 📋 **Trip status mix** -- after all conversations, the generator automatically updates some trips to "confirmed" and "completed" status
 
-### 1.7 Enrich with Preference Conflicts (Optional)
+### 1.7 🔀 Enrich with Preference Conflicts (Optional)
 
 After running the data generator, you can optionally run the enricher to add **more preference conflicts** for richer analytics. The enricher sends short conversations where users contradict their earlier preferences, triggering memory supersession in the AI system.
 
@@ -219,11 +219,11 @@ These conflicts create **superseded memories** that show up in the Memory Health
 
 ---
 
-## Step 2: Mirror Data to Fabric
+## 🪞 Step 2: Mirror Data to Fabric
 
 Cosmos DB Mirroring replicates your operational data into Fabric as Delta tables, making it available for Spark notebooks, SQL queries, and Power BI — without any ETL pipelines.
 
-### 2.1 Configure RBAC for Mirroring
+### 2.1 🔐 Configure RBAC for Mirroring
 
 Before setting up mirroring, your Cosmos DB account needs a custom RBAC role that grants Fabric the `readMetadata` and `readAnalytics` data actions. Scripts are included for both PowerShell (Windows) and Bash (macOS/Linux) to create this role and assign it to your signed-in user.
 
@@ -266,7 +266,7 @@ chmod +x rbac-mirror.sh
 
    The script will ask whether to export the role definition JSON to a local file — this is optional and you can safely answer **no**.
 
-### 2.2 Create a Mirrored Database
+### 2.2 🗄️ Create a Mirrored Database
 
 1. Open your Fabric workspace in the [Fabric portal](https://app.fabric.microsoft.com).
 2. Click **+ New item**.
@@ -275,14 +275,14 @@ chmod +x rbac-mirror.sh
 
 ![Create mirrored database](media/mirror_step1_create_mirrored_db.png)
 
-### 2.3 Select the Connection Source
+### 2.3 🔗 Select the Connection Source
 
 1. On the connection source screen, select **Azure Cosmos DB v2**.
 2. Click **Next**.
 
 ![Select Azure Cosmos DB v2 connection](media/mirror_step2_select_connection_cosmos_account.png)
 
-### 2.4 Connect to Your Cosmos DB Account
+### 2.4 🔌 Connect to Your Cosmos DB Account
 
 1. On the **New connection** screen, enter your Cosmos DB account URL (e.g., `https://<your-account>.documents.azure.com:443/`). You can find this on the **Overview** page of your Cosmos DB account in the Azure portal.
 2. For **Authentication kind**, select **Organizational account**.
@@ -291,7 +291,7 @@ chmod +x rbac-mirror.sh
 
 ![Connect to Cosmos DB account](media/mirror_step3_connect_cosmos_account.png)
 
-### 2.5 Select the Database
+### 2.5 🎯 Select the Database
 
 1. After connecting, Fabric displays the databases in your Cosmos DB account.
 2. Select **TravelAssistant** (the database created by the Bicep deployment).
@@ -299,7 +299,7 @@ chmod +x rbac-mirror.sh
 
 ![Select TravelAssistant database](media/mirror_step4_select_database.png)
 
-### 2.6 Select Containers to Mirror
+### 2.6 📦 Select Containers to Mirror
 
 1. Fabric shows all containers in the TravelAssistant database.
 2. Select these four containers:
@@ -312,7 +312,7 @@ chmod +x rbac-mirror.sh
 
 ![Select containers to mirror](media/mirror_step5_select_containers.png)
 
-### 2.7 Name the Mirrored Database
+### 2.7 ✏️ Name the Mirrored Database
 
 1. Fabric prompts you to name the destination mirror artifact.
 2. Enter **TravelAssistantDatabase** as the name.
@@ -320,7 +320,7 @@ chmod +x rbac-mirror.sh
 
 ![Name the mirrored database](media/mirror_step6_name_mirror.png)
 
-### 2.8 Verify Mirroring Status
+### 2.8 ✅ Verify Mirroring Status
 
 1. Fabric begins the initial replication. You'll see a status page showing each container's sync progress.
 2. Wait for all four containers to show **Running** with a green checkmark. The initial sync typically takes 2-5 minutes depending on data volume.
@@ -334,18 +334,18 @@ The mirrored data appears as Delta tables accessible via both Spark and the SQL 
 
 ---
 
-## Step 3: Run the Spark Notebook
+## 📓 Step 3: Run the Spark Notebook
 
 The notebook (`TravelAssistantNotebook.ipynb`) reads from the mirrored database and writes analytical tables to a Lakehouse.
 
-### 3.1 Upload to Fabric
+### 3.1 ⬆️ Upload to Fabric
 
 1. In your Fabric workspace, create a **Lakehouse** named **TravelAssistantLakehouse**. During creation, check **Lakehouse schemas** (required for mirrored database access).
 1. Return to your Fabric workspace.
 1. Click **Import**, then **Notebook** and upload `analytics/TravelAssistantNotebook.ipynb`.
 1. Open the notebook in the Fabric portal.
 
-### 3.2 Attach Data Sources
+### 3.2 🔗 Attach Data Sources
 
 Before running the notebook, you need to attach both the Lakehouse and the mirrored database:
 
@@ -355,7 +355,7 @@ Before running the notebook, you need to attach both the Lakehouse and the mirro
 
 > **Important:** The notebook reads data via `pyodbc` (not through the Explorer attachments), but attaching the mirrored database confirms it is accessible from your notebook environment.
 
-### 3.3 How It Reads Data
+### 3.3 📖 How It Reads Data
 
 The notebook connects directly to the mirrored database's **SQL Analytics Endpoint** using `pyodbc` with AAD token authentication. This bypasses Spark's catalog entirely (which cannot resolve mirrored databases) and reads data via standard SQL queries into pandas DataFrames, then converts to Spark.
 
@@ -365,7 +365,7 @@ You need the SQL connection string from the Fabric portal:
 2. Go to **Settings** (the gear icon).
 3. Copy the **SQL endpoint** (it looks like `xxxxx.datawarehouse.fabric.microsoft.com`).
 
-### 3.4 Configure
+### 3.4 ⚙️ Configure
 
 Update these values in the first code cell:
 
@@ -378,7 +378,7 @@ SQL_ENDPOINT = "xxxxx.datawarehouse.fabric.microsoft.com"  # from Fabric portal
 
 > **Note:** `MIRRORED_DB` is the name you gave the mirrored database artifact in Fabric (e.g., `TravelAssistantDatabase`). `MIRRORED_SCHEMA` is the Cosmos DB database name, which is automatically set to `TravelAssistant` by the Bicep deployment. If you followed the naming above, these values do not need to change -- only `WORKSPACE_NAME` and `SQL_ENDPOINT` require updating.
 
-### 3.5 Run All Cells
+### 3.5 ▶️ Run All Cells
 
 1. Start a new standard Spark session in your notebook.
 1. Click Run all. Allow the notebook to complete executing.
@@ -402,11 +402,11 @@ The notebook produces these tables in your Lakehouse:
 
 ---
 
-## Step 4: Power BI Report
+## 📊 Step 4: Power BI Report
 
 The report visualizes how the multi-agent system learns about users, plans trips, and uses memory to personalize recommendations. It has 5 pages that tell a story about the AI's memory and decision-making patterns.
 
-### Understanding Memory Types
+### 🧠 Understanding Memory Types
 
 The multi-agent system stores three types of memories, each serving a different purpose:
 
@@ -422,11 +422,11 @@ The multi-agent system stores three types of memories, each serving a different 
 
 The report's Memory Intelligence page shows the distribution across all three types, and the Memory Health page tracks which memories are actively being used vs. going stale.
 
-### Option A: Build from Scratch (Recommended)
+### 🛠️ Option A: Build from Scratch (Recommended)
 
 Build the report manually in Power BI Desktop. See [`PowerBI_Build_Guide.md`](PowerBI_Build_Guide.md) for detailed step-by-step instructions including exact visual types, table names, column assignments, and descriptions of what each visual tells you. This is the recommended approach as it gives you full control over the report layout and ensures compatibility with your data.
 
-### Option B: Use the Pre-built Template
+### 📄 Option B: Use the Pre-built Template
 
 > **Note:** The `.pbit` template and `.pbix` file included in this repository are **untested** and may not work correctly with your Lakehouse schema. If you encounter issues loading or refreshing the template, use **Option A** above to build the report from scratch using the [`PowerBI_Build_Guide.md`](PowerBI_Build_Guide.md).
 
@@ -450,7 +450,7 @@ Summary of the steps:
 
 ---
 
-### Page 1: Memory Intelligence Overview
+### 📈 Page 1: Memory Intelligence Overview
 
 This page answers: **How much has the AI learned about its users?**
 
@@ -466,7 +466,7 @@ This is the executive summary of the AI's memory system. KPI cards show total me
 
 ---
 
-### Page 2: Memory Health
+### 💚 Page 2: Memory Health
 
 This page answers: **How healthy is the AI's memory system?**
 
@@ -482,7 +482,7 @@ This page digs into the durability and lifecycle of the AI's knowledge. A stacke
 
 ---
 
-### Page 3: User Preferences
+### 🎨 Page 3: User Preferences
 
 This page answers: **What does the AI know about each user's preferences?**
 
@@ -498,7 +498,7 @@ This page explores the preference categories the AI has extracted from conversat
 
 ---
 
-### Page 4: Trip Planning Insights
+### 🗺️ Page 4: Trip Planning Insights
 
 This page answers: **How is the AI planning trips?**
 
@@ -514,7 +514,7 @@ This page shifts from memory to action. The trip status donut shows the pipeline
 
 ---
 
-### Page 5: Destination Intelligence
+### 🏙️ Page 5: Destination Intelligence
 
 This page answers: **Where does the AI send people, and what do those trips look like?**
 
@@ -530,7 +530,7 @@ This page focuses on the destinations themselves. The top destinations bar chart
 
 ---
 
-## Step 5: SQL Endpoint Queries (Optional)
+## 🔍 Step 5: SQL Endpoint Queries (Optional)
 
 The file `sql_endpoint_queries.sql` contains ready-to-run queries for the Fabric SQL Analytics Endpoint. These are useful for:
 
@@ -544,7 +544,7 @@ Open the SQL Analytics Endpoint in your Fabric workspace and paste queries from 
 
 ---
 
-## File Reference
+## 📁 File Reference
 
 | File | Purpose |
 |------|---------|
