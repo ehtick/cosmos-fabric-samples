@@ -11,108 +11,172 @@ products:
 name: |
     Disable Synapse Link Helper
 urlFragment: disable-synapse-link-helper
-description: Helper scripts that disable Synapse Link analytical storage across Cosmos DB SQL containers once Fabric Mirroring replaces it.
+description: Helper scripts to check Synapse Link status, guide migration to Fabric Mirroring, and safely disable analytical storage on Azure Cosmos DB SQL containers.
 ---
 -->
 
 # Disable Synapse Link Helper
 
-These scripts turn off analytical storage (Synapse Link) for Azure Cosmos DB SQL containers by setting `analyticalStorageTTL` to `0`. Synapse Link is in maintenance mode and we **strongly** recommend moving to Fabric Mirroring. 
+> **This sample helps you: Check -> Migrate -> Disable Synapse Link safely.**
 
-**Run these scripts only after you have completed your migration and no longer need the existing analytical store.**
+Synapse Link is in **maintenance mode**. Microsoft recommends migrating analytical workloads to **Fabric Mirroring** -- the strategic replacement that offers real-time replication of your Cosmos DB data into Microsoft Fabric OneLake.
 
-## Why run this?
+> **WARNING: If you have analytical store data you still need, complete Fabric Mirroring migration BEFORE disabling Synapse Link.**
+> Disabling makes the existing analytical store immediately and irreversibly inaccessible.
+>
+> **Migration guide: https://learn.microsoft.com/en-us/fabric/mirroring/azure-cosmos-db-migrate-synapse-link**
 
-- Stop ongoing analytical store charges once Fabric Mirroring is live and Synapse Link is no longer needed.
-- Apply the change across every container in the account with a single command instead of editing each container manually.
-- Finish your Fabric Mirroring migration first; disabling sets analyticalStorageTTL to 0 and the existing analytical store is inaccessible immediately.
+## The three-step workflow
 
-## What the scripts do
+### 1. Check -- inventory your Synapse Link usage (non-destructive)
 
-- Enumerates databases and containers within a Cosmos DB account.
-- Detects analytical storage that remains enabled (`analyticalStorageTTL > 0`).
-- Confirmation step before disabling all listed containers (use `-Force` or `--yes` to skip when automating).
-- Sets the TTL to `0`, disabling Synapse Link immediately.
+Run the script in **Status mode** (the default) to see every container, its `analyticalStorageTTL` value, and whether the analytical store is likely active. No changes are made. Optionally export the inventory to CSV.
+
+### 2. Migrate -- move analytical workloads to Fabric Mirroring
+
+Before disabling, set up Fabric Mirroring for your Cosmos DB account so that your analytical pipelines continue to work. Run the script in **Migrate mode** to print the step-by-step guide with a direct link to the migration documentation, followed by a live inventory of your account.
+
+### 3. Disable -- turn off Synapse Link billing
+
+Once migration is complete and you no longer need the existing analytical store, run the script in **Disable mode**. The script displays an explicit destructive-action warning, lists the containers that will be affected, and requires confirmation before proceeding.
+
+## Quick start
+
+```powershell
+# Status check (safe default -- no changes made)
+.\Disable-CosmosDBAnalyticalStorage.ps1 -ResourceGroupName "rg-name" -AccountName "cosmos-account"
+```
+
+```bash
+# Status check (safe default -- no changes made)
+./Disable-CosmosDBAnalyticalStorage.sh --resource-group rg-name --account-name cosmos-account
+```
 
 ## Files
 
 | File | Description |
 |------|-------------|
-| Disable-CosmosDBAnalyticalStorage.ps1 | PowerShell script with preview and confirmation flags |
-| Disable-CosmosDBAnalyticalStorage.sh | Equivalent script but for Bash/Azure CLI implementation for automated pipelines |
+| `Disable-CosmosDBAnalyticalStorage.ps1` | PowerShell script (Az PowerShell module) |
+| `Disable-CosmosDBAnalyticalStorage.sh`  | Bash script (Azure CLI + jq)             |
 
 ## Prerequisites
 
 ### PowerShell
 
 - PowerShell 7+ or Windows PowerShell 5.1
-- Az PowerShell modules (`Install-Module Az -Scope CurrentUser`)
-- Logged in with `Connect-AzAccount` and permissions to update Cosmos DB containers
+- Az PowerShell modules: `Install-Module Az -Scope CurrentUser`
+- Logged in with `Connect-AzAccount` and **Cosmos DB Account Contributor** rights
 
 ### Bash
 
 - Azure CLI 2.49 or later (`az version`)
+- `jq` installed
 - Logged in with `az login` and write access to the Cosmos DB account
 - Bash environment (Azure Cloud Shell, WSL, macOS, or Linux)
 
-## Usage
+## Usage by mode
 
-### PowerShell Script
+### Status mode (default)
+
+Lists all SQL containers with their `analyticalStorageTTL` value and a human-readable interpretation. **Non-destructive.**
+
+TTL values are interpreted as follows:
+
+| Raw TTL | Interpretation |
+|---------|----------------|
+| `0` or not set | Disabled -- Synapse Link is off |
+| `-1` | Enabled, infinite retention |
+| `N` (positive integer) | Enabled, N days retention |
 
 ```powershell
-# Disable Synapse Link across the account
-.\Disable-CosmosDBAnalyticalStorage.ps1 `
-    -ResourceGroupName "rg-name" `
-    -AccountName "cosmos-account"
+# Default -- same as -Mode Status
+.\Disable-CosmosDBAnalyticalStorage.ps1 -ResourceGroupName "rg-name" -AccountName "cosmos-account"
 
-# Restrict to a specific database
-.\Disable-CosmosDBAnalyticalStorage.ps1 `
-    -ResourceGroupName "rg-name" `
-    -AccountName "cosmos-account" `
-    -DatabaseName "db-name"
+# Explicit mode flag
+.\Disable-CosmosDBAnalyticalStorage.ps1 -ResourceGroupName "rg-name" -AccountName "cosmos-account" -Mode Status
 
-# Preview containers with analytical storage enabled
-.\Disable-CosmosDBAnalyticalStorage.ps1 `
-    -ResourceGroupName "rg-name" `
-    -AccountName "cosmos-account" `
-    -ListEnabled
+# Export inventory to CSV
+.\Disable-CosmosDBAnalyticalStorage.ps1 -ResourceGroupName "rg-name" -AccountName "cosmos-account" -Mode Status -OutputCsv .\sl-inventory.csv
 
-# Skip confirmation for automation
-.\Disable-CosmosDBAnalyticalStorage.ps1 `
-    -ResourceGroupName "rg-name" `
-    -AccountName "cosmos-account" `
-    -Force
+# Target a specific database only
+.\Disable-CosmosDBAnalyticalStorage.ps1 -ResourceGroupName "rg-name" -AccountName "cosmos-account" -Mode Status -DatabaseName "myDb"
 ```
 
-### Bash Script
-
 ```bash
-chmod +x Disable-CosmosDBAnalyticalStorage.sh
-
-# Disable Synapse Link across the account
+# Default -- same as --mode status
 ./Disable-CosmosDBAnalyticalStorage.sh --resource-group rg-name --account-name cosmos-account
 
+# Explicit mode flag
+./Disable-CosmosDBAnalyticalStorage.sh --resource-group rg-name --account-name cosmos-account --mode status
+
+# Export inventory to CSV
+./Disable-CosmosDBAnalyticalStorage.sh --resource-group rg-name --account-name cosmos-account --mode status --output-csv ./sl-inventory.csv
+
+# Target a specific database
+./Disable-CosmosDBAnalyticalStorage.sh --resource-group rg-name --account-name cosmos-account --mode status --database-name myDb
+```
+
+### Migrate mode
+
+Prints the Check->Migrate->Disable guide with a direct link to the Fabric Mirroring migration documentation, then runs a status check so you can see your current inventory. **Non-destructive.**
+
+```powershell
+.\Disable-CosmosDBAnalyticalStorage.ps1 -ResourceGroupName "rg-name" -AccountName "cosmos-account" -Mode Migrate
+```
+
+```bash
+./Disable-CosmosDBAnalyticalStorage.sh --resource-group rg-name --account-name cosmos-account --mode migrate
+```
+
+### Disable mode
+
+Sets `analyticalStorageTTL=0` on every container that has Synapse Link enabled in the target scope. **Destructive -- explicit `-Mode Disable` / `--mode disable` flag required.**
+
+The script displays a destructive-action warning, lists the containers affected, and requires confirmation before making any changes.
+
+```powershell
+# Disable across the account (confirmation prompt shown)
+.\Disable-CosmosDBAnalyticalStorage.ps1 -ResourceGroupName "rg-name" -AccountName "cosmos-account" -Mode Disable
+
 # Restrict to a specific database
-./Disable-CosmosDBAnalyticalStorage.sh --resource-group rg-name --account-name cosmos-account --database-name db-name
+.\Disable-CosmosDBAnalyticalStorage.ps1 -ResourceGroupName "rg-name" -AccountName "cosmos-account" -Mode Disable -DatabaseName "myDb"
 
-# Preview containers with analytical storage enabled
-./Disable-CosmosDBAnalyticalStorage.sh --resource-group rg-name --account-name cosmos-account --list-enabled
+# Skip confirmation prompt (automation / CI pipelines)
+.\Disable-CosmosDBAnalyticalStorage.ps1 -ResourceGroupName "rg-name" -AccountName "cosmos-account" -Mode Disable -Force
+```
 
-# Skip confirmation for automation
-./Disable-CosmosDBAnalyticalStorage.sh --resource-group rg-name --account-name cosmos-account --yes
+```bash
+# Disable across the account
+./Disable-CosmosDBAnalyticalStorage.sh --resource-group rg-name --account-name cosmos-account --mode disable
+
+# Restrict to a specific database
+./Disable-CosmosDBAnalyticalStorage.sh --resource-group rg-name --account-name cosmos-account --mode disable --database-name myDb
+
+# Skip confirmation (automation)
+./Disable-CosmosDBAnalyticalStorage.sh --resource-group rg-name --account-name cosmos-account --mode disable --yes
 ```
 
 ## Parameters
 
 | Option | Description |
 |--------|-------------|
-| `-ResourceGroupName` / `--resource-group` | Resource group hosting the Cosmos DB account |
-| `-AccountName` / `--account-name` | Cosmos DB account name to scan |
-| `-DatabaseName` / `--database-name` | Optional. Limit processing to one SQL database |
-| `-ListEnabled` / `--list-enabled` | Preview containers with analytical storage enabled |
-| `-Force` / `--yes` | Bypass confirmation prompts for unattended runs |
+| `-ResourceGroupName` / `--resource-group` | **Required.** Resource group hosting the Cosmos DB account. |
+| `-AccountName` / `--account-name` | **Required.** Cosmos DB account name to scan. |
+| `-DatabaseName` / `--database-name` | Optional. Limit processing to one SQL database. |
+| `-Mode` / `--mode` | Operation mode: `Status` (default), `Migrate`, or `Disable`. |
+| `-OutputCsv` / `--output-csv` | Optional. Path to write a CSV inventory (Status and Migrate modes). |
+| `-Force` / `--yes` | Bypass confirmation prompt in Disable mode (for unattended runs). |
+| `-ListEnabled` / `--list-enabled` | **Deprecated.** Redirects to Status mode. Will be removed in a future release. |
+
+## Backward compatibility
+
+The `-ListEnabled` / `--list-enabled` flag is **preserved but deprecated**. It redirects to Status mode and prints a deprecation warning. It will be removed in a future release.
+
+**The old behavior of running with no flags previously triggered a destructive disable. This has changed: the default is now Status (non-destructive).** If you have automation that omitted the mode flag and relied on implicit disable behavior, add `-Mode Disable` / `--mode disable` explicitly.
 
 ## Verification
+
+After disabling, confirm that all containers report `analyticalStorageTTL = 0`:
 
 ```powershell
 Get-AzCosmosDBSqlContainer `
@@ -134,7 +198,9 @@ Every container should report `analyticalStorageTTL` equal to `0`.
 
 ## Caveats and troubleshooting
 
-- Run the scripts only after Fabric Mirroring has fully replaced Synapse Link in production scenarios.
-- Disabling analytical storage is irreversible for existing history; re-enabling creates a new, empty analytical store seeded from current transactional data.
-- Use the preview option first to confirm the targeted containers before applying changes.
-- To avoid 403 Forbidden responses in the Azure Portal like the one shown above, ensure you have Cosmos DB Account Contributor rights (PowerShell) or the built-in data-plane roles Cosmos DB Built-in Data Reader and Cosmos DB Built-in Data Writer (CLI). These Azure Portal errors do not affect your containers Analytical Store TTL.
+- **Disabling is irreversible for existing analytical data.** Re-enabling creates a new, empty analytical store seeded from current transactional data -- any data in the previous analytical store is permanently lost. Complete Fabric Mirroring migration before running Disable mode.
+- The Status mode reports `Analytical store ACTIVE - data may exist` for any container with a non-zero TTL. The scripts cannot measure actual data volume from the Azure control plane; treat any ACTIVE container as potentially having data that needs migrating.
+- Run the scripts only after Fabric Mirroring has fully replaced Synapse Link in your production scenarios.
+- Use `-DatabaseName` / `--database-name` to scope the operation to a single database when working in large accounts.
+- To avoid 403 Forbidden responses in the Azure Portal, ensure you have **Cosmos DB Account Contributor** rights (PowerShell) or the built-in data-plane roles **Cosmos DB Built-in Data Reader** and **Cosmos DB Built-in Data Writer** (CLI). These Azure Portal errors do not affect the scripts' ability to update `analyticalStorageTTL`.
+- Run `az version` (CLI >= 2.49) or `Get-Module Az.CosmosDB` (PS) to verify your tooling meets the prerequisites before running the scripts.
