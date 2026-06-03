@@ -19,7 +19,7 @@
     Cosmos DB account name.
 
 .PARAMETER DatabaseName
-    (Optional) Specific SQL database to target. Processes all databases if not specified.
+    (Optional) Specific database to target. Processes all databases if not specified.
 
 .PARAMETER Mode
     Operation mode: Status (default), Migrate, or Disable.
@@ -230,7 +230,7 @@ if ($Mode -eq 'Status' -or $Mode -eq 'Migrate') {
     Write-Host ""
 
     if ($allContainers.Count -eq 0) {
-        Write-Host "No SQL containers found in the target scope." -ForegroundColor Yellow
+        Write-Host "No NoSQL containers found in the target scope." -ForegroundColor Yellow
     } else {
         $allContainers | Format-Table -AutoSize -Property Database, Container, AnalyticalStorageTTL, Interpretation, Status | Out-String | Write-Host
     }

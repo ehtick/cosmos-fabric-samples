@@ -263,7 +263,7 @@ if [[ "$MODE" == "status" || "$MODE" == "migrate" ]]; then
     printf '%s======================================================================%s\n\n' "$CYAN" "$RESET"
 
     if (( ${#all_containers[@]} == 0 )); then
-        printf '%sNo SQL containers found in the target scope.%s\n\n' "$YELLOW" "$RESET"
+        printf '%sNo NoSQL containers found in the target scope.%s\n\n' "$YELLOW" "$RESET"
     else
         printf '%-28s %-28s %6s  %-38s  %s\n' "Database" "Container" "TTL" "Interpretation" "Status"
         printf '%-28s %-28s %6s  %-38s  %s\n' "--------" "---------" "---" "--------------" "------"

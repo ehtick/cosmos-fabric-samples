@@ -11,7 +11,7 @@ products:
 name: |
     Disable Synapse Link Helper
 urlFragment: disable-synapse-link-helper
-description: Helper scripts to check Synapse Link status, guide migration to Fabric Mirroring, and safely disable analytical storage on Azure Cosmos DB SQL containers.
+description: Helper scripts to check Synapse Link status, guide migration to Fabric Mirroring, and safely disable analytical storage on Azure Cosmos DB NoSQL containers.
 ---
 -->
 
@@ -78,7 +78,7 @@ Once migration is complete and you no longer need the existing analytical store,
 
 ### Status mode (default)
 
-Lists all SQL containers with their `analyticalStorageTTL` value and a human-readable interpretation. **Non-destructive.**
+Lists all NoSQL containers with their `analyticalStorageTTL` value and a human-readable interpretation. **Non-destructive.**
 
 TTL values are interpreted as follows:
 
@@ -162,7 +162,7 @@ The script displays a destructive-action warning, lists the containers affected,
 |--------|-------------|
 | `-ResourceGroupName` / `--resource-group` | **Required.** Resource group hosting the Cosmos DB account. |
 | `-AccountName` / `--account-name` | **Required.** Cosmos DB account name to scan. |
-| `-DatabaseName` / `--database-name` | Optional. Limit processing to one SQL database. |
+| `-DatabaseName` / `--database-name` | Optional. Limit processing to one NoSQL database. |
 | `-Mode` / `--mode` | Operation mode: `Status` (default), `Migrate`, or `Disable`. |
 | `-OutputCsv` / `--output-csv` | Optional. Path to write a CSV inventory (Status and Migrate modes). |
 | `-Force` / `--yes` | Bypass confirmation prompt in Disable mode (for unattended runs). |
