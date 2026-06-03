@@ -4,7 +4,7 @@ set -euo pipefail
 
 MAX_RETRIES=5
 DELAY_SECONDS=5
-MIGRATE_URL='https://learn.microsoft.com/en-us/fabric/mirroring/azure-cosmos-db-migrate-synapse-link'
+MIGRATE_URL='https://learn.microsoft.com/fabric/mirroring/azure-cosmos-db-migrate-synapse-link'
 
 print_usage() {
     cat <<'USAGE'
@@ -15,10 +15,12 @@ Options:
   --account-name, -a     Cosmos DB account name (required)
   --database-name, -d    Specific database name to target (optional)
   --mode <mode>          Operation mode: status (default), migrate, or disable
-                           status  - Non-destructive inventory of containers with Synapse Link TTL.
+                           status  - Non-destructive list of containers with Synapse Link enabled.
+                                     Use --show-all to include disabled/unconfigured containers.
                            migrate - Prints the Check->Migrate->Disable guide, then runs status.
                            disable - Sets analyticalStorageTTL=0 on enabled containers. DESTRUCTIVE.
-  --output-csv <path>    Write container inventory to a CSV file (status/migrate modes)
+  --output-csv <path>    Write a CSV export of Synapse Link enabled containers (status/migrate modes)
+  --show-all             Show all containers including those with Synapse Link disabled or never configured
   --yes, -y              Skip confirmation prompt in disable mode (automation)
   --list-enabled, -l     DEPRECATED: use --mode status instead
   --help, -h             Show this help message
@@ -27,10 +29,13 @@ Examples:
   # Status check (safe default -- no changes made)
   ./Disable-CosmosDBAnalyticalStorage.sh --resource-group rg --account-name acct
 
-  # Status with CSV export
-  ./Disable-CosmosDBAnalyticalStorage.sh -g rg -a acct --mode status --output-csv ./sl-inventory.csv
+  # Status showing ALL containers (including those never configured for Synapse Link)
+  ./Disable-CosmosDBAnalyticalStorage.sh -g rg -a acct --mode status --show-all
 
-  # Print migration guide then show inventory
+  # Status with CSV export
+  ./Disable-CosmosDBAnalyticalStorage.sh -g rg -a acct --mode status --output-csv ./sl-enabled-containers.csv
+
+  # Print migration guide then show Synapse Link enabled containers
   ./Disable-CosmosDBAnalyticalStorage.sh -g rg -a acct --mode migrate
 
   # Disable (destructive -- explicit opt-in)
@@ -47,6 +52,7 @@ DATABASE_NAME=""
 MODE="status"
 OUTPUT_CSV=""
 AUTO_CONFIRM=0
+SHOW_ALL=0
 LIST_ENABLED=0
 MODE_EXPLICITLY_SET=0
 
@@ -64,6 +70,8 @@ while [[ $# -gt 0 ]]; do
             OUTPUT_CSV="$2"; shift 2 ;;
         --yes|-y)
             AUTO_CONFIRM=1; shift 1 ;;
+        --show-all)
+            SHOW_ALL=1; shift 1 ;;
         --list-enabled|-l)
             LIST_ENABLED=1; shift 1 ;;
         --help|-h)
@@ -104,9 +112,10 @@ if command -v tput >/dev/null 2>&1 && [[ -t 1 ]]; then
     MAGENTA="$(tput setaf 5)"
     WHITE="$(tput setaf 7)"
     DARK_YELLOW="$(tput setaf 3)"
+    DARK_GRAY="$(tput setaf 8)"
     RESET="$(tput sgr0)"
 else
-    CYAN="" YELLOW="" GREEN="" RED="" MAGENTA="" WHITE="" DARK_YELLOW="" RESET=""
+    CYAN="" YELLOW="" GREEN="" RED="" MAGENTA="" WHITE="" DARK_YELLOW="" DARK_GRAY="" RESET=""
 fi
 
 invoke_with_retry() {
@@ -132,11 +141,11 @@ invoke_with_retry() {
 get_ttl_interpretation() {
     local ttl="$1"
     if [[ -z "$ttl" || "$ttl" == "0" || "$ttl" == "null" ]]; then
-        echo "Disabled (0)"
+        echo "Disabled"
     elif [[ "$ttl" == "-1" ]]; then
-        echo "Enabled, infinite retention (-1)"
+        echo "Enabled (infinite retention)"
     else
-        echo "Enabled, ${ttl} days retention"
+        echo "Enabled (${ttl} days retention)"
     fi
 }
 
@@ -160,8 +169,9 @@ if ! az account show >/dev/null 2>&1; then
     printf '%sLogin successful. Initializing Azure context...%s\n' "$GREEN" "$RESET"
 fi
 
-printf '\n%sCosmos DB Synapse Link Status Tool%s\n' "$CYAN" "$RESET"
-printf '%sAccount: %s | Resource Group: %s | Mode: %s%s\n\n' "$WHITE" "$ACCOUNT_NAME" "$RESOURCE_GROUP" "$MODE" "$RESET"
+MODE_DISPLAY="${MODE^}"
+printf '\n%sCosmos DB Synapse Link Deprecation Tool%s\n' "$CYAN" "$RESET"
+printf '%sAccount: %s | Resource Group: %s | Mode: %s%s\n\n' "$WHITE" "$ACCOUNT_NAME" "$RESOURCE_GROUP" "$MODE_DISPLAY" "$RESET"
 
 # MIGRATE mode: print guide banner then fall through to status logic
 if [[ "$MODE" == "migrate" ]]; then
@@ -169,12 +179,11 @@ if [[ "$MODE" == "migrate" ]]; then
     printf '%s       SYNAPSE LINK -> FABRIC MIRRORING MIGRATION GUIDE%s\n' "$CYAN" "$RESET"
     printf '%s======================================================================%s\n\n' "$CYAN" "$RESET"
     printf '%sWHY MIGRATE?%s\n' "$YELLOW" "$RESET"
-    printf '  Azure Synapse Link is in maintenance mode and is not receiving new\n'
-    printf '  investment. Fabric Mirroring is the strategic replacement, offering\n'
+    printf '  Azure Synapse Link is in maintenance mode. Fabric Mirroring is the strategic replacement, offering\n'
     printf '  real-time replication of your Cosmos DB data into Microsoft Fabric\n'
     printf '  OneLake with richer analytics capabilities.\n\n'
     printf '%sTHREE-STEP PROCESS:%s\n' "$YELLOW" "$RESET"
-    printf '  1. CHECK   -> Run this script in status mode (default) to inventory\n'
+    printf '  1. CHECK   -> Run this script in status mode (default) to see\n'
     printf '               which containers have Synapse Link enabled.\n'
     printf '  2. MIGRATE -> Complete Fabric Mirroring setup so analytical workloads\n'
     printf '               run on Fabric before you touch Synapse Link.\n'
@@ -185,7 +194,7 @@ if [[ "$MODE" == "migrate" ]]; then
     printf '%sDISABLE SCRIPT (use after migration is complete):%s\n' "$YELLOW" "$RESET"
     printf '  %shttps://github.com/AzureCosmosDB/cosmos-fabric-samples/tree/main/disable-synapse-link%s\n\n' "$CYAN" "$RESET"
     printf '%s======================================================================%s\n' "$CYAN" "$RESET"
-    printf '%s  Running STATUS CHECK below so you can see your current inventory...%s\n' "$WHITE" "$RESET"
+    printf '%s  Running STATUS CHECK below to show Synapse Link enabled containers...%s\n' "$WHITE" "$RESET"
     printf '%s======================================================================%s\n\n' "$CYAN" "$RESET"
 fi
 
@@ -259,42 +268,57 @@ done
 # STATUS and MIGRATE modes
 if [[ "$MODE" == "status" || "$MODE" == "migrate" ]]; then
     printf '%s======================================================================%s\n' "$CYAN" "$RESET"
-    printf '%sSYNAPSE LINK INVENTORY%s\n' "$CYAN" "$RESET"
+    printf '%sSYNAPSE LINK ENABLED CONTAINERS%s\n' "$CYAN" "$RESET"
     printf '%s======================================================================%s\n\n' "$CYAN" "$RESET"
 
-    if (( ${#all_containers[@]} == 0 )); then
+    if (( SHOW_ALL )); then
+        display_containers=("${all_containers[@]+"${all_containers[@]}"}")
+    else
+        display_containers=("${enabled_containers[@]+"${enabled_containers[@]}"}")
+    fi
+
+    if (( ${#display_containers[@]} == 0 )) && (( ! SHOW_ALL )); then
+        printf '%sNo containers with Synapse Link enabled found in the target scope.%s\n' "$GREEN" "$RESET"
+        printf '%s  (Run with --show-all to see containers where Synapse Link was never configured.)%s\n\n' "$DARK_GRAY" "$RESET"
+    elif (( ${#display_containers[@]} == 0 )); then
         printf '%sNo NoSQL containers found in the target scope.%s\n\n' "$YELLOW" "$RESET"
     else
-        printf '%-28s %-28s %6s  %-38s  %s\n' "Database" "Container" "TTL" "Interpretation" "Status"
-        printf '%-28s %-28s %6s  %-38s  %s\n' "--------" "---------" "---" "--------------" "------"
-        for entry in "${all_containers[@]}"; do
+        if (( SHOW_ALL )); then
+            printf '%sShowing all %d container(s) (%d with Synapse Link enabled).%s\n\n' \
+                "$DARK_GRAY" "${#all_containers[@]}" "${#enabled_containers[@]}" "$RESET"
+        else
+            printf '%sShowing %d Synapse Link enabled container(s). Run with --show-all to include disabled containers.%s\n\n' \
+                "$DARK_GRAY" "${#enabled_containers[@]}" "$RESET"
+        fi
+        printf '%-28s %-28s %6s  %s\n' "Database" "Container" "TTL" "Status"
+        printf '%-28s %-28s %6s  %s\n' "--------" "---------" "---" "------"
+        for entry in "${display_containers[@]}"; do
             IFS='|' read -r db_name container_name ttl interp active_status <<<"$entry"
-            if [[ "$active_status" == *"ACTIVE"* ]]; then
+            if [[ "$ttl" != "0" && "$ttl" != "null" && -n "$ttl" ]]; then
                 row_color="$YELLOW"
             else
                 row_color="$GREEN"
             fi
-            printf "${row_color}%-28s %-28s %6s  %-38s  %s${RESET}\n" \
-                "$db_name" "$container_name" "$ttl" "$interp" "$active_status"
+            printf "${row_color}%-28s %-28s %6s  %s${RESET}\n" \
+                "$db_name" "$container_name" "$ttl" "$interp"
         done
         printf '\n'
     fi
 
     if [[ -n "$OUTPUT_CSV" ]]; then
         {
-            printf 'Database,Container,AnalyticalStorageTTL,Interpretation,Status\n'
-            for entry in "${all_containers[@]}"; do
+            printf 'Database,Container,AnalyticalStorageTTL,Status\n'
+            for entry in "${display_containers[@]}"; do
                 IFS='|' read -r db_name container_name ttl interp active_status <<<"$entry"
-                printf '"%s","%s","%s","%s","%s"\n' \
-                    "$db_name" "$container_name" "$ttl" "$interp" "$active_status"
+                printf '"%s","%s","%s","%s"\n' \
+                    "$db_name" "$container_name" "$ttl" "$interp"
             done
         } > "$OUTPUT_CSV"
-        printf '%sCSV inventory written to: %s%s\n\n' "$GREEN" "$OUTPUT_CSV" "$RESET"
+        printf '%sCSV export written to: %s%s\n\n' "$GREEN" "$OUTPUT_CSV" "$RESET"
     fi
 
-    printf '%sNOTE: '"'"'Analytical store ACTIVE'"'"' means analyticalStorageTTL is non-zero. This%s\n' "$DARK_YELLOW" "$RESET"
-    printf '%s      script cannot reliably measure actual data volume from the control plane.%s\n' "$DARK_YELLOW" "$RESET"
-    printf '%s      Treat any ACTIVE container as potentially having data to migrate.%s\n\n' "$DARK_YELLOW" "$RESET"
+    printf '%sNOTE: Containers showing '"'"'Enabled'"'"' in the Status column have analyticalStorageTTL set.%s\n' "$DARK_YELLOW" "$RESET"
+    printf '%s      Treat any Enabled container as potentially having data and confirm with your analytics team before disabling.%s\n\n' "$DARK_YELLOW" "$RESET"
 
     printf '%s======================================================================%s\n' "$CYAN" "$RESET"
     printf '%sWHAT TO DO NEXT%s\n' "$CYAN" "$RESET"
@@ -339,11 +363,11 @@ if [[ "$MODE" == "disable" ]]; then
     printf '\n'
 
     if (( AUTO_CONFIRM == 0 )); then
-        printf 'Do you want to disable analytical storage for %d container(s)? This action cannot be undone. [y/N]: ' \
-            "${#enabled_containers[@]}"
+        printf '%sTo confirm, type '\''yes'\'' and press Enter (anything else cancels):%s\n' "$YELLOW" "$RESET"
+        printf 'Confirm disable: '
         read -r confirm
-        if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
-            printf '%sOperation cancelled.%s\n\n' "$YELLOW" "$RESET"
+        if [[ "$confirm" != 'yes' ]]; then
+            printf '\n%sOperation cancelled. No changes were made.%s\n\n' "$YELLOW" "$RESET"
             exit 0
         fi
     fi

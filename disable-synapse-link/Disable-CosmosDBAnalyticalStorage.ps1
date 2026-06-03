@@ -4,13 +4,13 @@
 
 .DESCRIPTION
     Supports three modes:
-      Status  (default) - Non-destructive inventory of all containers with Synapse Link TTL status.
+      Status  (default) - Non-destructive list of containers with Synapse Link enabled. Use -ShowAll to include disabled containers.
       Migrate           - Prints the Check->Migrate->Disable guide with migration link, then runs Status.
       Disable           - Sets analyticalStorageTTL=0 on enabled containers. DESTRUCTIVE. Explicit opt-in.
 
     Synapse Link is in maintenance mode. Migrate to Fabric Mirroring before disabling if you still
     need analytical store data:
-    https://learn.microsoft.com/en-us/fabric/mirroring/azure-cosmos-db-migrate-synapse-link
+    https://learn.microsoft.com/fabric/mirroring/azure-cosmos-db-migrate-synapse-link
 
 .PARAMETER ResourceGroupName
     Resource group name containing the Cosmos DB account.
@@ -23,12 +23,16 @@
 
 .PARAMETER Mode
     Operation mode: Status (default), Migrate, or Disable.
-      Status  - Lists all containers and their analyticalStorageTTL. Non-destructive.
+      Status  - Lists containers with Synapse Link enabled and their analyticalStorageTTL. Use -ShowAll to include disabled containers. Non-destructive.
       Migrate - Prints the migration guide and link, then runs Status.
       Disable - Sets analyticalStorageTTL=0 on all enabled containers. DESTRUCTIVE.
 
+.PARAMETER ShowAll
+    (Status/Migrate modes) Show all containers including those with Synapse Link disabled or never configured.
+    By default, only containers with Synapse Link enabled are shown.
+
 .PARAMETER OutputCsv
-    (Optional) Path to write a CSV inventory of containers. Applies to Status and Migrate modes.
+    (Optional) Path to write a CSV export of Synapse Link enabled containers. Applies to Status and Migrate modes.
 
 .PARAMETER Force
     (Disable mode) Skips the confirmation prompt. Use for automation.
@@ -41,11 +45,15 @@
     .\Disable-CosmosDBAnalyticalStorage.ps1 -ResourceGroupName "myRG" -AccountName "myAccount"
 
 .EXAMPLE
-    # Status check with CSV export
-    .\Disable-CosmosDBAnalyticalStorage.ps1 -ResourceGroupName "myRG" -AccountName "myAccount" -Mode Status -OutputCsv .\sl-inventory.csv
+    # Status check showing ALL containers (including those never configured for Synapse Link)
+    .\Disable-CosmosDBAnalyticalStorage.ps1 -ResourceGroupName "myRG" -AccountName "myAccount" -Mode Status -ShowAll
 
 .EXAMPLE
-    # Print migration guide then show inventory
+    # Status check with CSV export
+    .\Disable-CosmosDBAnalyticalStorage.ps1 -ResourceGroupName "myRG" -AccountName "myAccount" -Mode Status -OutputCsv .\sl-enabled-containers.csv
+
+.EXAMPLE
+    # Print migration guide then show Synapse Link enabled containers
     .\Disable-CosmosDBAnalyticalStorage.ps1 -ResourceGroupName "myRG" -AccountName "myAccount" -Mode Migrate
 
 .EXAMPLE
@@ -76,11 +84,13 @@ param(
 
     [switch]$Force,
 
+    [switch]$ShowAll,
+
     # Deprecated: use -Mode Status instead
     [switch]$ListEnabled
 )
 
-$MIGRATE_URL = 'https://learn.microsoft.com/en-us/fabric/mirroring/azure-cosmos-db-migrate-synapse-link'
+$MIGRATE_URL = 'https://learn.microsoft.com/fabric/mirroring/azure-cosmos-db-migrate-synapse-link'
 
 # Backward-compatibility: -ListEnabled deprecated
 if ($ListEnabled) {
@@ -128,9 +138,9 @@ function Invoke-WithRetry {
 # TTL interpretation helper
 function Get-TtlInterpretation {
     param($Ttl)
-    if ($null -eq $Ttl -or $Ttl -eq 0) { return 'Disabled (0)' }
-    if ($Ttl -eq -1)                    { return 'Enabled, infinite retention (-1)' }
-    return "Enabled, $Ttl days retention"
+    if ($null -eq $Ttl -or $Ttl -eq 0) { return 'Disabled' }
+    if ($Ttl -eq -1)                    { return 'Enabled (infinite retention)' }
+    return "Enabled ($Ttl days retention)"
 }
 
 # Ensure Azure login
@@ -141,7 +151,7 @@ if (-not (Get-AzContext)) {
 }
 
 Write-Host ""
-Write-Host "Cosmos DB Synapse Link Status Tool" -ForegroundColor Cyan
+Write-Host "Cosmos DB Synapse Link Deprecation Tool" -ForegroundColor Cyan
 Write-Host "Account: $AccountName | Resource Group: $ResourceGroupName | Mode: $Mode" -ForegroundColor White
 Write-Host ""
 
@@ -152,14 +162,13 @@ if ($Mode -eq 'Migrate') {
     Write-Host "======================================================================" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "WHY MIGRATE?" -ForegroundColor Yellow
-    Write-Host "  Azure Synapse Link is in maintenance mode and is not receiving new"
-    Write-Host "  investment. Fabric Mirroring is the strategic replacement, offering"
+    Write-Host "  Azure Synapse Link is in maintenance mode. Fabric Mirroring is the strategic replacement, offering"
     Write-Host "  real-time replication of your Cosmos DB data into Microsoft Fabric"
     Write-Host "  OneLake with richer analytics capabilities."
     Write-Host ""
     Write-Host "THREE-STEP PROCESS:" -ForegroundColor Yellow
-    Write-Host "  1. CHECK   -> Run this script in Status mode (default) to inventory"
-    Write-Host "               which containers have Synapse Link enabled."
+    Write-Host "  1. CHECK   -> Run this script in Status mode (default) to see which"
+    Write-Host "               containers have Synapse Link enabled."
     Write-Host "  2. MIGRATE -> Complete Fabric Mirroring setup so analytical workloads"
     Write-Host "               run on Fabric before you touch Synapse Link."
     Write-Host "  3. DISABLE -> Run this script with -Mode Disable to set"
@@ -172,7 +181,7 @@ if ($Mode -eq 'Migrate') {
     Write-Host "  https://github.com/AzureCosmosDB/cosmos-fabric-samples/tree/main/disable-synapse-link" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "======================================================================" -ForegroundColor Cyan
-    Write-Host "  Running STATUS CHECK below so you can see your current inventory..." -ForegroundColor White
+    Write-Host "  Running STATUS CHECK below to show Synapse Link enabled containers..." -ForegroundColor White
     Write-Host "======================================================================" -ForegroundColor Cyan
     Write-Host ""
 }
@@ -202,17 +211,11 @@ foreach ($db in $databases) {
     foreach ($container in $containers) {
         $ttl    = $container.Resource.AnalyticalStorageTtl
         $interp = Get-TtlInterpretation -Ttl $ttl
-        $active = if ($null -ne $ttl -and $ttl -ne 0) {
-            'Analytical store ACTIVE - data may exist'
-        } else {
-            'Not active'
-        }
         $obj = [pscustomobject]@{
             Database             = $db.Name
             Container            = $container.Name
             AnalyticalStorageTTL = if ($null -eq $ttl) { 0 } else { $ttl }
-            Interpretation       = $interp
-            Status               = $active
+            Status               = $interp
         }
         $allContainers += $obj
         if ($null -ne $ttl -and $ttl -ne 0) {
@@ -221,29 +224,39 @@ foreach ($db in $databases) {
     }
 }
 
-# STATUS and MIGRATE modes: print inventory and recommendations
+# STATUS and MIGRATE modes: list enabled containers and recommendations
 if ($Mode -eq 'Status' -or $Mode -eq 'Migrate') {
 
     Write-Host "======================================================================" -ForegroundColor Cyan
-    Write-Host "SYNAPSE LINK INVENTORY" -ForegroundColor Cyan
+    Write-Host "SYNAPSE LINK ENABLED CONTAINERS" -ForegroundColor Cyan
     Write-Host "======================================================================" -ForegroundColor Cyan
     Write-Host ""
 
-    if ($allContainers.Count -eq 0) {
+    $displayContainers = if ($ShowAll) { $allContainers } else { $enabledContainers }
+
+    if ($displayContainers.Count -eq 0 -and -not $ShowAll) {
+        Write-Host "No containers with Synapse Link enabled found in the target scope." -ForegroundColor Green
+        Write-Host "  (Run with -ShowAll to see containers where Synapse Link was never configured.)" -ForegroundColor DarkGray
+    } elseif ($displayContainers.Count -eq 0) {
         Write-Host "No NoSQL containers found in the target scope." -ForegroundColor Yellow
     } else {
-        $allContainers | Format-Table -AutoSize -Property Database, Container, AnalyticalStorageTTL, Interpretation, Status | Out-String | Write-Host
+        if ($ShowAll) {
+            Write-Host "Showing all $($allContainers.Count) container(s) ($($enabledContainers.Count) with Synapse Link enabled)." -ForegroundColor DarkGray
+        } else {
+            Write-Host "Showing $($enabledContainers.Count) Synapse Link enabled container(s). Run with -ShowAll to include disabled containers." -ForegroundColor DarkGray
+        }
+        Write-Host ""
+        $displayContainers | Format-Table -AutoSize -Property Database, Container, AnalyticalStorageTTL, Status | Out-String | Write-Host
     }
 
     if ($OutputCsv) {
-        $allContainers | Export-Csv -Path $OutputCsv -NoTypeInformation -Force
-        Write-Host "CSV inventory written to: $OutputCsv" -ForegroundColor Green
+        $displayContainers | Export-Csv -Path $OutputCsv -NoTypeInformation -Force
+        Write-Host "CSV export written to: $OutputCsv" -ForegroundColor Green
         Write-Host ""
     }
 
-    Write-Host "NOTE: 'Analytical store ACTIVE' means analyticalStorageTTL is non-zero. This" -ForegroundColor DarkYellow
-    Write-Host "      script cannot reliably measure actual data volume from the control plane." -ForegroundColor DarkYellow
-    Write-Host "      Treat any ACTIVE container as potentially having data to migrate." -ForegroundColor DarkYellow
+    Write-Host "NOTE: Containers showing 'Enabled' in the Status column have analyticalStorageTTL set." -ForegroundColor DarkYellow
+    Write-Host "      Treat any Enabled container as potentially having data and confirm with your analytics team before disabling." -ForegroundColor DarkYellow
     Write-Host ""
 
     Write-Host "======================================================================" -ForegroundColor Cyan
@@ -292,14 +305,16 @@ if ($Mode -eq 'Disable') {
 
     Write-Host "Containers to be disabled:" -ForegroundColor Yellow
     foreach ($item in $enabledContainers) {
-        Write-Host ("  {0}/{1}  (TTL: {2} -- {3})" -f $item.Database, $item.Container, $item.AnalyticalStorageTTL, $item.Interpretation) -ForegroundColor Yellow
+        Write-Host ("  {0}/{1}  (TTL: {2} -- {3})" -f $item.Database, $item.Container, $item.AnalyticalStorageTTL, $item.Status) -ForegroundColor Yellow
     }
     Write-Host ""
 
     if (-not $Force) {
-        $confirmation = Read-Host "Do you want to disable analytical storage for $($enabledContainers.Count) container(s)? This action cannot be undone. [y/N]"
-        if ($confirmation -notmatch '^[Yy]$') {
-            Write-Host "Operation cancelled." -ForegroundColor Yellow
+        Write-Host "To confirm, type 'yes' and press Enter (anything else cancels):" -ForegroundColor Yellow
+        $confirmation = Read-Host "Confirm disable"
+        if ($confirmation -ne 'yes') {
+            Write-Host ""
+            Write-Host "Operation cancelled. No changes were made." -ForegroundColor Yellow
             return
         }
     }
