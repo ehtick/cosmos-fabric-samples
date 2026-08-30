@@ -52,6 +52,19 @@ azd up
 
 See the [complete solution README](https://github.com/AzureCosmosDB/travel-multi-agent-workshop/blob/main/02_completed/README.md) for all deployment and configuration options.
 
+## Deploy the Fabric analytics
+
+`azd up` provisions the Fabric capacity, but it does not create the Fabric workspace, Cosmos DB mirror, notebook, user data function, or Power BI report. From `02_completed`, run the Fabric provisioning script with `-Solution` to deploy the completed demo assets:
+
+```powershell
+cd ..\analytics\fabric
+.\Provision-Fabric.ps1 -Solution
+```
+
+The script reads the current `azd` environment and prompts for a Fabric workspace name. It also pauses for the one required portal step: create an **Azure Cosmos DB v2** connection with your organizational account, then provide its connection ID.
+
+The script creates the Cosmos DB mirror, uploads the completed `ConversionFunnelReverseETL` notebook, deploys the `optimization-apply-loop` user data function, imports the Power BI report, and grants the required Cosmos DB access. See the [Fabric automation runbook](https://github.com/AzureCosmosDB/travel-multi-agent-workshop/blob/main/analytics/fabric/README.md) for the complete workflow and troubleshooting guidance.
+
 ## Run the application locally
 
 Run `azd provision` from `02_completed` first. The post-provision hook creates `.venv-travel`, writes the application environment files, and seeds Cosmos DB.
