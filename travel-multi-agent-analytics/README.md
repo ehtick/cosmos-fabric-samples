@@ -15,6 +15,18 @@ The [`02_completed` solution](https://github.com/AzureCosmosDB/travel-multi-agen
 - **Analytics and optimization** - an Analytics Portal surfaces agent quality, cost, conversion, and model-usage signals, with reversible optimization policies.
 - **Microsoft Fabric integration** - optional Cosmos DB mirroring, Spark, reverse ETL, and Power BI components extend the operational application with analytics.
 
+### Web Analytics Portal
+
+The browser-based Analytics Portal reads the Travel API and presents live or reverse-ETL metrics across Overview, Optimizations, Model Selection, Memory, Agents, Business, and Governance views.
+
+![Web Analytics Portal overview](media/analytics-portal-overview.png)
+
+### Power BI report
+
+The Fabric deployment includes the `TravelAssistantAnalyticsReport`, a seven-page Power BI report connected to the mirrored Cosmos DB data and optimization insights.
+
+![Power BI optimization overview](media/power-bi-optimization-overview.png)
+
 ## Deploy the hosted demo
 
 ### Prerequisites
@@ -65,11 +77,36 @@ The script reads the current `azd` environment and prompts for a Fabric workspac
 
 The script creates the Cosmos DB mirror, uploads the completed `ConversionFunnelReverseETL` notebook, deploys the `optimization-apply-loop` user data function, imports the Power BI report, and grants the required Cosmos DB access. See the [Fabric automation runbook](https://github.com/AzureCosmosDB/travel-multi-agent-workshop/blob/main/analytics/fabric/README.md) for the complete workflow and troubleshooting guidance.
 
+## Start and open the hosted experiences
+
+No application processes need to be started after `azd up`. From `02_completed`, retrieve the deployed frontend URL:
+
+```powershell
+azd env get-value FRONTEND_URI
+```
+
+Use that value to open each hosted experience:
+
+| Experience | URL or location | Getting started |
+|---|---|---|
+| Travel Assistant | `<FRONTEND_URI>` | Sign in as `tony`, `steve`, `bruce`, or `peter` under the `marvel` tenant. |
+| Web Analytics Portal | `<FRONTEND_URI>/analytics/` | Select the `marvel` dataset for live application activity or `analytics` for the seeded optimization demo. |
+| Travel API documentation | `<FRONTEND_URI>/api/docs` | The hosted API uses internal ingress and is exposed through the frontend's `/api` proxy. |
+| Power BI report | Fabric workspace → `TravelAssistantAnalyticsReport` | The Fabric script imports the report and connects it to the deployed mirror. |
+
+To refresh the Fabric-derived Business, Memory, and Governance insights before presenting the demo:
+
+1. Open the Fabric workspace created by `Provision-Fabric.ps1`.
+2. Open the `ConversionFunnelReverseETL` notebook.
+3. Set `TENANT` to `analytics`, then select **Run all**.
+4. Open `TravelAssistantAnalyticsReport` in the same workspace.
+5. In the Web Analytics Portal, choose the `analytics` dataset and **Reverse-ETL (notebook)** source, then select **Refresh**.
+
 ## Run the application locally
 
 Run `azd provision` from `02_completed` first. The post-provision hook creates `.venv-travel`, writes the application environment files, and seeds Cosmos DB.
 
-Then open three terminals from the `02_completed` directory:
+Then open four terminals from the `02_completed` directory:
 
 ```powershell
 # Terminal 1 - MCP server
@@ -93,11 +130,19 @@ npm install
 npm start
 ```
 
+```powershell
+# Terminal 4 - Web Analytics Portal
+python -m http.server 8060 --directory ..\analytics\dashboard
+```
+
 Open:
 
 - Frontend: [http://localhost:4200](http://localhost:4200)
 - Travel API documentation: [http://localhost:8000/docs](http://localhost:8000/docs)
 - MCP server: [http://localhost:8080](http://localhost:8080)
+- Web Analytics Portal: [http://localhost:8060](http://localhost:8060)
+
+In the local Web Analytics Portal, set the API URL to `http://localhost:8000`, then select the `marvel` or `analytics` dataset. The Power BI report remains in the Fabric workspace and does not require a local process.
 
 ## Use it as a reference implementation
 
